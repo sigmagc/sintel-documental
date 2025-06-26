@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Gestión Documental SINTEL</title>
+    
+    <!-- Agregar Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         * {
             margin: 0;
@@ -833,12 +837,12 @@
         let currentUser = null;
         let allDocuments = []; // Almacenar todos los documentos para filtrado
 
-        // Simulamos una base de datos local para el ejemplo
-        let mockDatabase = {
-            documents: [],
-            counters: {},
-            nextId: 1
-        };
+        // 🔥 CONFIGURACIÓN DE SUPABASE - CREDENCIALES REALES
+        const SUPABASE_URL = 'https://xgfzyoxdokemeekqgxyp.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnZnp5b3hkb2tlbWVla3FneHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5Mzk5MDIsImV4cCI6MjA2NTUxNTkwMn0.ku5o86yfB6F5T9akZ2oVHV0ze5UEFZ18IRpoFNbDBU4'
+
+        // Crear cliente de Supabase
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
         // Usuarios del sistema
         const users = {
@@ -890,6 +894,14 @@
                     ...users[username]
                 };
                 
+                // Guardar en sessionStorage
+                try {
+                    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    console.log('✅ Usuario guardado en sesión');
+                } catch (e) {
+                    console.error('Error guardando sesión:', e);
+                }
+                
                 showMainApp();
                 showAlert(`¡Bienvenido, ${currentUser.name}!`, 'success');
                 
@@ -903,6 +915,7 @@
             console.log('Cerrando sesión...');
             
             currentUser = null;
+            sessionStorage.removeItem('currentUser');
             
             // Mostrar login
             document.getElementById('mainContainer').classList.add('hidden');
@@ -929,7 +942,10 @@
             // Configurar permisos
             setupPermissions();
             
-            // Cargar datos
+            // Conectar con Supabase
+            console.log('🔗 Conectando con Supabase...');
+            
+            // Cargar datos desde Supabase
             loadStats();
             loadHistory();
             
@@ -969,68 +985,29 @@
             }, 3000);
         }
 
-        // ================================
-        // FUNCIONES DE BASE DE DATOS - MEJORADAS
-        // ================================
-
-        // Función para obtener el próximo número consecutivo (sin huecos)
-        function getNextConsecutiveNumber(type, department, year) {
-            const key = `${type}_${department}_${year}`;
-            console.log('🔍 Buscando próximo número consecutivo para:', key);
+        function checkSession() {
+            console.log('Verificando sesión...');
             
-            // Obtener todos los documentos del mismo tipo, departamento y año
-            const existingDocs = mockDatabase.documents.filter(doc => 
-                doc.document_type === type && 
-                doc.department === department && 
-                doc.year === year
-            );
-            
-            console.log('📋 Documentos existentes encontrados:', existingDocs.length);
-            
-            if (existingDocs.length === 0) {
-                console.log('✅ Primer documento del tipo, retornando 1');
-                return 1;
-            }
-            
-            // Extraer los números de los documentos existentes
-            const existingNumbers = existingDocs.map(doc => {
-                // Extraer el número del formato "Tipo No. XXX-DEPT-YYYY"
-                const match = doc.document_number.match(/(\d+)-/);
-                return match ? parseInt(match[1]) : 0;
-            }).filter(num => num > 0).sort((a, b) => a - b);
-            
-            console.log('🔢 Números existentes ordenados:', existingNumbers);
-            
-            // Buscar el primer hueco en la secuencia
-            for (let i = 0; i < existingNumbers.length; i++) {
-                const expectedNumber = i + 1;
-                if (existingNumbers[i] !== expectedNumber) {
-                    console.log('🎯 Hueco encontrado en posición:', expectedNumber);
-                    return expectedNumber;
+            try {
+                const savedUser = sessionStorage.getItem('currentUser');
+                if (savedUser) {
+                    currentUser = JSON.parse(savedUser);
+                    console.log('✅ Sesión encontrada:', currentUser.username);
+                    showMainApp();
+                    return true;
                 }
+            } catch (e) {
+                console.error('Error leyendo sesión:', e);
+                sessionStorage.removeItem('currentUser');
             }
             
-            // Si no hay huecos, el próximo número es el siguiente consecutivo
-            const nextNumber = existingNumbers.length + 1;
-            console.log('🎯 Sin huecos, próximo número consecutivo:', nextNumber);
-            return nextNumber;
+            console.log('ℹ️ No hay sesión activa');
+            return false;
         }
 
-        // Función para generar el número de documento completo
-        function generateDocumentNumber(type, department) {
-            const currentYear = new Date().getFullYear();
-            const consecutiveNumber = getNextConsecutiveNumber(type, department, currentYear);
-            
-            const prefix = documentTypeMapping[type]?.prefix || 'Documento No.';
-            const documentNumber = `${prefix} ${consecutiveNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
-            
-            console.log('📄 Número de documento generado:', documentNumber);
-            return {
-                fullNumber: documentNumber,
-                consecutiveNumber: consecutiveNumber,
-                year: currentYear
-            };
-        }
+        // ================================
+        // FUNCIONES DE SUPABASE CON NUMERACIÓN CONSECUTIVA
+        // ================================
 
         async function generateDocument() {
             try {
@@ -1044,49 +1021,82 @@
                 
                 const type = document.getElementById('documentType').value;
                 const department = document.getElementById('department').value;
-                
-                // Generar número de documento consecutivo
-                const docNumberInfo = generateDocumentNumber(type, department);
-                
-                const documentData = {
-                    id: mockDatabase.nextId++,
-                    document_type: type,
+                const currentYear = new Date().getFullYear();
+
+                console.log('📋 Generando documento con numeración consecutiva...');
+
+                // 1. Obtener próximo número consecutivo usando la función SQL
+                const { data: nextNumber, error: rpcError } = await supabaseClient.rpc('get_next_consecutive_number', {
+                    doc_type: type,
+                    dept: department,
+                    doc_year: currentYear
+                });
+
+                if (rpcError) {
+                    console.error('Error obteniendo número consecutivo:', rpcError);
+                    throw new Error('Error obteniendo número consecutivo: ' + rpcError.message);
+                }
+
+                console.log('🔢 Próximo número consecutivo:', nextNumber);
+
+                // 2. Generar número de documento completo
+                const prefixes = {
+                    'oficio': 'Oficio No.',
+                    'memorando': 'Memorando No.',
+                    'orden_compra': 'Orden de Compra No.',
+                    'proforma': 'Proforma No.',
+                    'acta_entrega_externa': 'Acta de Entrega-Recepción Externa No.',
+                    'acta_entrega_interna': 'Acta de Entrega-Recepción Interna No.',
+                    'acta_reunion': 'Acta de Reunión No.'
+                };
+
+                const prefix = prefixes[type] || 'Documento No.';
+                const documentNumber = `${prefix} ${nextNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
+
+                console.log('📄 Número de documento generado:', documentNumber);
+
+                // 3. Insertar documento en la base de datos
+                const { data, error } = await supabaseClient
+                    .from('documents')
+                    .insert({
+                        document_type: type,
+                        department: department,
+                        subject: subject,
+                        recipient: document.getElementById('recipient').value || null,
+                        content: document.getElementById('content').value || null,
+                        document_number: documentNumber,
+                        created_by: currentUser.username,
+                        created_by_role: currentUser.role,
+                        status: 'Activo'
+                    })
+                    .select();
+
+                if (error) {
+                    console.error('Error insertando documento:', error);
+                    throw error;
+                }
+
+                console.log('✅ Documento insertado correctamente:', data);
+
+                // 4. Actualizar interfaz
+                currentDocument = {
+                    type: type,
                     department: department,
                     subject: subject,
                     recipient: document.getElementById('recipient').value,
                     content: document.getElementById('content').value,
-                    created_by: currentUser.username,
-                    created_by_role: currentUser.role,
-                    document_number: docNumberInfo.fullNumber,
-                    year: docNumberInfo.year,
-                    consecutive_number: docNumberInfo.consecutiveNumber,
-                    created_date: new Date().toISOString(),
-                    status: 'Activo'
-                };
-
-                console.log('📋 Generando documento:', documentData);
-
-                // Guardar en mock database
-                mockDatabase.documents.push(documentData);
-                
-                // Actualizar contador (para mostrar en admin)
-                const counterKey = `${type}_${department}_${docNumberInfo.year}`;
-                mockDatabase.counters[counterKey] = docNumberInfo.consecutiveNumber;
-
-                currentDocument = {
-                    ...documentData,
-                    number: docNumberInfo.fullNumber,
+                    number: documentNumber,
                     date: new Date().toLocaleString('es-ES')
                 };
 
                 // Mostrar vista previa
-                document.getElementById('generatedNumber').textContent = docNumberInfo.fullNumber;
+                document.getElementById('generatedNumber').textContent = documentNumber;
                 const htmlContent = createDocumentHTML(currentDocument);
                 document.getElementById('documentContent').innerHTML = htmlContent;
                 document.getElementById('documentPreview').style.display = 'block';
 
-                showAlert(`✅ Documento ${docNumberInfo.fullNumber} generado correctamente`, 'success');
-                updateStatus('🟢 Documento guardado exitosamente', 'success');
+                showAlert(`✅ Documento ${documentNumber} generado correctamente`, 'success');
+                updateStatus('🟢 Documento guardado en Supabase exitosamente', 'success');
                 
                 // Limpiar formulario
                 document.getElementById('subject').value = '';
@@ -1099,10 +1109,11 @@
                 if (currentUser.role === 'Administrador') {
                     loadCounters();
                 }
+
             } catch (error) {
                 console.error('❌ Error generando documento:', error);
                 showAlert('Error generando documento: ' + error.message, 'error');
-                updateStatus('🔴 Error al generar documento', 'error');
+                updateStatus('🔴 Error conectando con Supabase', 'error');
             } finally {
                 setButtonLoading('generateBtn', false);
             }
@@ -1115,17 +1126,41 @@
                 const type = document.getElementById('documentType').value;
                 const department = document.getElementById('department').value;
                 const currentYear = new Date().getFullYear();
-                
-                const nextNumber = getNextConsecutiveNumber(type, department, currentYear);
-                const prefix = documentTypeMapping[type]?.prefix || 'Documento No.';
-                const nextDocNumber = `${prefix} ${nextNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
-                
-                showAlert(`Próximo número: ${nextDocNumber}`, 'success');
-                updateStatus('🟢 Sistema funcionando correctamente', 'success');
+
+                console.log('👁️ Obteniendo vista previa del próximo número...');
+
+                // Obtener próximo número consecutivo
+                const { data: nextNumber, error } = await supabaseClient.rpc('get_next_consecutive_number', {
+                    doc_type: type,
+                    dept: department,
+                    doc_year: currentYear
+                });
+
+                if (error) {
+                    console.error('Error obteniendo próximo número:', error);
+                    throw error;
+                }
+
+                const prefixes = {
+                    'oficio': 'Oficio No.',
+                    'memorando': 'Memorando No.',
+                    'orden_compra': 'Orden de Compra No.',
+                    'proforma': 'Proforma No.',
+                    'acta_entrega_externa': 'Acta de Entrega-Recepción Externa No.',
+                    'acta_entrega_interna': 'Acta de Entrega-Recepción Interna No.',
+                    'acta_reunion': 'Acta de Reunión No.'
+                };
+
+                const prefix = prefixes[type] || 'Documento No.';
+                const documentNumber = `${prefix} ${nextNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
+
+                showAlert(`Próximo número: ${documentNumber}`, 'success');
+                updateStatus('🟢 Sistema conectado - Supabase activo', 'success');
+
             } catch (error) {
                 console.error('❌ Error obteniendo próximo número:', error);
                 showAlert('Error obteniendo próximo número', 'error');
-                updateStatus('🔴 Error en el sistema', 'error');
+                updateStatus('🔴 Error conectando con Supabase', 'error');
             } finally {
                 setButtonLoading('previewBtn', false);
             }
@@ -1133,49 +1168,68 @@
 
         async function loadStats() {
             try {
-                console.log('📊 Cargando estadísticas...');
-                
-                const totalDocuments = mockDatabase.documents.length;
-                
+                console.log('📊 Cargando estadísticas desde Supabase...');
+
+                // Total de documentos
+                const { count: totalDocuments, error: totalError } = await supabaseClient
+                    .from('documents')
+                    .select('*', { count: 'exact', head: true });
+
+                if (totalError) throw totalError;
+
                 // Documentos de hoy
-                const today = new Date().toDateString();
-                const todayDocuments = mockDatabase.documents.filter(doc => 
-                    new Date(doc.created_date).toDateString() === today
-                ).length;
-                
-                // Departamentos activos (con al menos un documento)
-                const activeDepartments = new Set(mockDatabase.documents.map(doc => doc.department)).size;
-                
-                document.getElementById('totalDocuments').textContent = totalDocuments;
-                document.getElementById('todayDocuments').textContent = todayDocuments;
-                document.getElementById('activeDepartments').textContent = activeDepartments;
-                
+                const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                const { count: todayDocuments, error: todayError } = await supabaseClient
+                    .from('documents')
+                    .select('*', { count: 'exact', head: true })
+                    .gte('created_at', today);
+
+                if (todayError) throw todayError;
+
+                // Departamentos activos
+                const { data: departments, error: deptError } = await supabaseClient
+                    .from('documents')
+                    .select('department');
+
+                if (deptError) throw deptError;
+
+                const activeDepartments = new Set(departments.map(doc => doc.department)).size;
+
+                // Actualizar interfaz
+                document.getElementById('totalDocuments').textContent = totalDocuments || 0;
+                document.getElementById('todayDocuments').textContent = todayDocuments || 0;
+                document.getElementById('activeDepartments').textContent = activeDepartments || 0;
+
                 console.log('✅ Estadísticas cargadas:', { totalDocuments, todayDocuments, activeDepartments });
-                updateStatus('🟢 Estadísticas actualizadas', 'success');
+                updateStatus('🟢 Estadísticas actualizadas desde Supabase', 'success');
+
             } catch (error) {
                 console.error('❌ Error cargando estadísticas:', error);
                 document.getElementById('totalDocuments').textContent = '-';
                 document.getElementById('todayDocuments').textContent = '-';
                 document.getElementById('activeDepartments').textContent = '-';
-                updateStatus('🔴 Error cargando estadísticas', 'error');
+                updateStatus('🔴 Error cargando estadísticas de Supabase', 'error');
             }
         }
 
         async function loadHistory() {
             try {
-                console.log('📚 Cargando historial...');
-                
-                // Ordenar documentos por fecha de creación (más recientes primero)
-                const documents = [...mockDatabase.documents].sort((a, b) => 
-                    new Date(b.created_date) - new Date(a.created_date)
-                );
-                
-                allDocuments = documents;
-                updateHistoryTable(documents);
-                updateHistoryInfo(documents.length);
-                
-                console.log('✅ Historial cargado:', documents.length, 'documentos');
-                updateStatus('🟢 Historial actualizado', 'success');
+                console.log('📚 Cargando historial desde Supabase...');
+
+                const { data: documents, error } = await supabaseClient
+                    .from('documents')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                allDocuments = documents || [];
+                updateHistoryTable(allDocuments);
+                updateHistoryInfo(allDocuments.length);
+
+                console.log('✅ Historial cargado desde Supabase:', allDocuments.length, 'documentos');
+                updateStatus('🟢 Historial actualizado desde Supabase', 'success');
+
             } catch (error) {
                 console.error('❌ Error cargando historial:', error);
                 const tbody = document.getElementById('historyTable');
@@ -1183,11 +1237,14 @@
                     <tr>
                         <td colspan="7" style="text-align: center; color: #e74c3c; padding: 40px;">
                             <div style="font-size: 1.2em; margin-bottom: 10px;">❌</div>
-                            <div>Error cargando documentos</div>
+                            <div>Error cargando documentos de Supabase</div>
+                            <div style="font-size: 0.9em; margin-top: 5px;">
+                                Verifique la conexión a la base de datos
+                            </div>
                         </td>
                     </tr>
                 `;
-                updateStatus('🔴 Error cargando historial', 'error');
+                updateStatus('🔴 Error cargando historial de Supabase', 'error');
             }
         }
 
@@ -1197,42 +1254,43 @@
             }
             
             try {
-                console.log('📊 Cargando contadores...');
-                
-                // Crear lista de contadores basada en documentos existentes
-                const counters = [];
-                const currentYear = new Date().getFullYear();
-                
-                // Agrupar documentos por tipo y departamento
+                console.log('📊 Cargando contadores desde Supabase...');
+
+                // Obtener todos los documentos agrupados por tipo y departamento
+                const { data: documents, error } = await supabaseClient
+                    .from('documents')
+                    .select('document_type, department, created_at');
+
+                if (error) throw error;
+
+                // Agrupar por tipo, departamento y año
                 const groups = {};
-                mockDatabase.documents.forEach(doc => {
-                    const key = `${doc.document_type}_${doc.department}_${doc.year}`;
+                documents.forEach(doc => {
+                    const year = new Date(doc.created_at).getFullYear();
+                    const key = `${doc.document_type}_${doc.department}_${year}`;
+                    
                     if (!groups[key]) {
                         groups[key] = {
                             document_type: doc.document_type,
                             department: doc.department,
-                            year: doc.year,
-                            counter: 0,
-                            documents: []
+                            year: year,
+                            counter: 0
                         };
                     }
-                    groups[key].documents.push(doc);
+                    groups[key].counter++;
                 });
-                
-                // Calcular el contador real para cada grupo
-                Object.values(groups).forEach(group => {
-                    group.counter = group.documents.length;
-                    counters.push(group);
-                });
-                
+
+                const counters = Object.values(groups);
                 updateCountersDisplay(counters);
-                console.log('✅ Contadores cargados:', counters.length);
-                updateStatus('🟢 Contadores actualizados', 'success');
+
+                console.log('✅ Contadores cargados desde Supabase:', counters.length);
+                updateStatus('🟢 Contadores actualizados desde Supabase', 'success');
+
             } catch (error) {
                 console.error('❌ Error cargando contadores:', error);
                 document.getElementById('countersStatus').innerHTML = 
-                    '<div style="color: #e74c3c;">Error cargando contadores</div>';
-                updateStatus('🔴 Error cargando contadores', 'error');
+                    '<div style="color: #e74c3c;">Error cargando contadores de Supabase</div>';
+                updateStatus('🔴 Error cargando contadores de Supabase', 'error');
             }
         }
 
@@ -1244,77 +1302,69 @@
             
             const confirmation = confirm(
                 `¿Está seguro de eliminar el documento "${documentNumber}"?\n\n` +
-                'Esta acción no se puede deshacer.'
+                'Esta acción eliminará el documento y reorganizará automáticamente la numeración para eliminar huecos.'
             );
             
             if (!confirmation) return;
             
             try {
-                console.log('🗑️ Eliminando documento:', documentId, documentNumber);
-                
-                // Encontrar el documento a eliminar
-                const docIndex = mockDatabase.documents.findIndex(doc => doc.id === documentId);
-                if (docIndex === -1) {
+                console.log('🗑️ Eliminando documento con reorganización:', documentId, documentNumber);
+
+                // 1. Obtener información del documento antes de eliminarlo
+                const { data: docData, error: selectError } = await supabaseClient
+                    .from('documents')
+                    .select('document_type, department, created_at, document_number')
+                    .eq('id', documentId)
+                    .single();
+
+                if (selectError || !docData) {
                     throw new Error('Documento no encontrado');
                 }
+
+                console.log('📄 Documento a eliminar:', docData);
+
+                // 2. Eliminar el documento
+                const { error: deleteError } = await supabaseClient
+                    .from('documents')
+                    .delete()
+                    .eq('id', documentId);
+
+                if (deleteError) {
+                    console.error('Error eliminando documento:', deleteError);
+                    throw deleteError;
+                }
+
+                console.log('✅ Documento eliminado correctamente');
+
+                // 3. Reorganizar numeración usando la función SQL
+                const year = new Date(docData.created_at).getFullYear();
                 
-                const deletedDoc = mockDatabase.documents[docIndex];
+                const { error: reorganizeError } = await supabaseClient.rpc('reorganize_document_numbers', {
+                    doc_type: docData.document_type,
+                    dept: docData.department,
+                    doc_year: year
+                });
+
+                if (reorganizeError) {
+                    console.error('Error reorganizando números:', reorganizeError);
+                    throw reorganizeError;
+                }
+
+                console.log('✅ Numeración reorganizada correctamente');
+
+                showAlert(`✅ Documento ${documentNumber} eliminado y numeración reorganizada`, 'success');
+                updateStatus('🟢 Documento eliminado y numeración reorganizada en Supabase', 'success');
                 
-                // Eliminar el documento
-                mockDatabase.documents.splice(docIndex, 1);
-                
-                // IMPORTANTE: Actualizar números de documentos posteriores para eliminar huecos
-                await recalculateDocumentNumbers(deletedDoc.document_type, deletedDoc.department, deletedDoc.year);
-                
-                showAlert(`✅ Documento ${documentNumber} eliminado correctamente`, 'success');
+                // Actualizar interfaz
                 loadStats();
                 loadHistory();
                 loadCounters();
-                updateStatus('🟢 Documento eliminado y numeración reorganizada', 'success');
+
             } catch (error) {
                 console.error('❌ Error eliminando documento:', error);
                 showAlert('Error eliminando documento: ' + error.message, 'error');
-                updateStatus('🔴 Error eliminando documento', 'error');
+                updateStatus('🔴 Error eliminando documento de Supabase', 'error');
             }
-        }
-
-        // Nueva función para recalcular números de documentos después de eliminar
-        async function recalculateDocumentNumbers(type, department, year) {
-            console.log('🔄 Recalculando números de documentos para:', type, department, year);
-            
-            // Obtener todos los documentos del mismo tipo, departamento y año
-            const docsToUpdate = mockDatabase.documents.filter(doc => 
-                doc.document_type === type && 
-                doc.department === department && 
-                doc.year === year
-            );
-            
-            if (docsToUpdate.length === 0) {
-                console.log('ℹ️ No hay documentos para recalcular');
-                return;
-            }
-            
-            // Ordenar por fecha de creación
-            docsToUpdate.sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
-            
-            const prefix = documentTypeMapping[type]?.prefix || 'Documento No.';
-            
-            // Renumerar secuencialmente
-            docsToUpdate.forEach((doc, index) => {
-                const newConsecutiveNumber = index + 1;
-                const newDocumentNumber = `${prefix} ${newConsecutiveNumber.toString().padStart(3, '0')}-${department}-${year}`;
-                
-                console.log(`🔄 Actualizando documento ${doc.id}: ${doc.document_number} → ${newDocumentNumber}`);
-                
-                doc.consecutive_number = newConsecutiveNumber;
-                doc.document_number = newDocumentNumber;
-            });
-            
-            // Actualizar contador
-            const counterKey = `${type}_${department}_${year}`;
-            mockDatabase.counters[counterKey] = docsToUpdate.length;
-            
-            console.log('✅ Renumeración completada. Nuevos números asignados:', docsToUpdate.length);
         }
 
         async function deleteAllDocuments() {
@@ -1324,14 +1374,19 @@
             }
             
             try {
-                console.log('🗑️ Eliminando todos los documentos...');
-                
-                // Limpiar base de datos
-                mockDatabase.documents = [];
-                mockDatabase.counters = {};
-                mockDatabase.nextId = 1;
-                
+                console.log('🗑️ Eliminando todos los documentos de Supabase...');
+
+                const { error } = await supabaseClient
+                    .from('documents')
+                    .delete()
+                    .neq('id', 0); // Eliminar todos (neq 0 elimina todos los registros)
+
+                if (error) throw error;
+
                 showAlert('✅ Todos los documentos han sido eliminados', 'success');
+                updateStatus('🟢 Sistema completamente reiniciado en Supabase', 'success');
+                
+                // Actualizar interfaz
                 loadStats();
                 loadHistory();
                 loadCounters();
@@ -1340,12 +1395,11 @@
                 // Limpiar filtros
                 document.getElementById('filterType').value = '';
                 document.getElementById('filterDepartment').value = '';
-                
-                updateStatus('🟢 Sistema completamente reiniciado', 'success');
+
             } catch (error) {
                 console.error('❌ Error eliminando documentos:', error);
                 showAlert('Error eliminando documentos: ' + error.message, 'error');
-                updateStatus('🔴 Error eliminando documentos', 'error');
+                updateStatus('🔴 Error eliminando documentos de Supabase', 'error');
             }
         }
 
@@ -1361,12 +1415,12 @@
             if (!department && !type) {
                 const confirmation = confirm(
                     '¿Está seguro de reiniciar TODOS los contadores a 0?\n\n' +
-                    'Esta acción eliminará todos los documentos.'
+                    'Esta acción no se puede deshacer.'
                 );
                 
                 if (!confirmation) return;
                 
-                // Reiniciar todo
+                // Reiniciar todo eliminando todos los documentos
                 await deleteAllDocuments();
                 return;
             } else {
@@ -1384,39 +1438,41 @@
             }
             
             try {
-                console.log('🔄 Reiniciando contadores específicos...');
+                console.log('🔄 Reiniciando contadores específicos en Supabase...');
                 
                 // Eliminar documentos específicos
-                const currentYear = new Date().getFullYear();
-                mockDatabase.documents = mockDatabase.documents.filter(doc => 
-                    !(doc.document_type === type && doc.department === department)
-                );
-                
-                // Eliminar contador específico
-                const counterKey = `${type}_${department}_${currentYear}`;
-                delete mockDatabase.counters[counterKey];
-                
+                const { error } = await supabaseClient
+                    .from('documents')
+                    .delete()
+                    .eq('document_type', type)
+                    .eq('department', department);
+
+                if (error) throw error;
+
                 showAlert(`✅ Contador para ${department} - ${type} reiniciado`, 'success');
+                updateStatus('🟢 Contador específico reiniciado en Supabase', 'success');
+                
                 loadCounters();
                 loadStats();
                 loadHistory();
-                updateStatus('🟢 Contador específico reiniciado', 'success');
+
             } catch (error) {
                 console.error('❌ Error reiniciando contadores:', error);
-                showAlert('Error reiniciando contadores', 'error');
-                updateStatus('🔴 Error reiniciando contadores', 'error');
+                showAlert('Error reiniciando contadores: ' + error.message, 'error');
+                updateStatus('🔴 Error reiniciando contadores en Supabase', 'error');
             }
         }
 
         function refreshData() {
-            console.log('🔄 Actualizando datos...');
+            console.log('🔄 Actualizando datos desde Supabase...');
             loadStats();
             loadHistory();
             if (currentUser && currentUser.role === 'Administrador') {
                 loadCounters();
+                console.log('👨‍💼 Contadores de admin actualizados desde Supabase');
             }
-            showAlert('✅ Datos actualizados correctamente', 'success');
-            updateStatus('🟢 Datos sincronizados', 'success');
+            showAlert('Datos actualizados desde Supabase correctamente', 'success');
+            updateStatus('🟢 Datos sincronizados con Supabase', 'success');
         }
 
         // ================================
@@ -1500,7 +1556,7 @@
             tbody.innerHTML = '';
             documents.forEach(doc => {
                 const row = tbody.insertRow();
-                const date = new Date(doc.created_date).toLocaleString('es-ES');
+                const date = new Date(doc.created_at).toLocaleString('es-ES');
                 
                 let documentNumber = doc.document_number;
                 console.log('📋 Mostrando documento en historial:', documentNumber);
@@ -1795,12 +1851,15 @@ Firma y Sello
         // ================================
 
         window.addEventListener('load', function() {
-            console.log('🚀 Iniciando SINTEL con numeración corregida...');
+            console.log('🚀 Iniciando SINTEL con Supabase y numeración consecutiva...');
             
-            // Mostrar login
-            document.getElementById('loginContainer').classList.remove('hidden');
-            document.getElementById('mainContainer').classList.add('hidden');
-            console.log('📋 Mostrando pantalla de login');
+            // Verificar si hay sesión activa
+            if (!checkSession()) {
+                // No hay sesión, mostrar login
+                document.getElementById('loginContainer').classList.remove('hidden');
+                document.getElementById('mainContainer').classList.add('hidden');
+                console.log('📋 Mostrando pantalla de login');
+            }
             
             // Permitir login con Enter
             document.getElementById('username').addEventListener('keypress', function(e) {
@@ -1818,7 +1877,15 @@ Firma y Sello
             });
         });
 
-        console.log('✅ SINTEL con numeración consecutiva cargado completamente');
+        // Actualización automática cada 30 segundos (solo si está logueado)
+        setInterval(function() {
+            if (currentUser) {
+                loadStats();
+                loadHistory();
+            }
+        }, 30000);
+
+        console.log('✅ SINTEL con Supabase y numeración consecutiva cargado completamente');
     </script>
 </body>
 </html>
