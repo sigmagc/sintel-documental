@@ -1,4 +1,65 @@
-</tbody>
+function updateHistoryTable(documents) {
+            const tbody = document.getElementById('historyTable');
+            
+            if (!documents || documents.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
+                            <div>No hay documentos para mostrar</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            documents.forEach(doc => {
+                const row = tbody.insertRow();
+                
+                // Ajustar fecha a zona horaria de Ecuador (UTC-5)
+                const dateObj = new Date(doc.created_date);
+                // Supabase guarda en UTC, ajustamos a Ecuador (UTC-5)
+                const ecuadorDate = new Date(dateObj.getTime() - (5 * 60 * 60 * 1000));
+                
+                const formattedDate = ecuadorDate.toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                const formattedTime = ecuadorDate.toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                
+                row.innerHTML = `
+                    <td><strong>${doc.document_number}</strong></td>
+                    <td><span style="background: rgba(251,176,64,0.2); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${getDocumentTypeName(doc.document_type)}</span></td>
+                    <td><span style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${doc.department}</span></td>
+                    <td>${doc.subject}</td>
+                    <td>${doc.recipient || 'No especificado'}</td>
+                    <td>
+                        <div style="font-size: 13px;">
+                            <div><strong>${formattedDate}</strong></div>
+                            <div style="color: rgba(255,255,255,0.7); font-size: 11px;">${formattedTime}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-small" onclick="viewDocument(${doc.id})" title="Ver detalles">
+                                👁️
+                            </button>
+                            ${currentUser && currentUser.role === 'Administrador' ? `
+                                <button class="btn btn-danger btn-small" onclick="deleteDocument(${doc.id}, '${doc.document_number}')" title="Eliminar">
+                                    🗑️
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
+            });
+        }                                </tbody>
                             </table>
                         </div>
                     </div>
@@ -495,13 +556,26 @@
 
         function updateHistoryInfo(totalCount) {
             const info = document.getElementById('historyInfo');
+            
+            // Ajustar hora actual a Ecuador (UTC-5)
+            const now = new Date();
+            const ecuadorNow = new Date(now.getTime() - (5 * 60 * 60 * 1000));
+            const lastUpdate = ecuadorNow.toLocaleString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            
             info.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
                     <div>
                         <strong>📊 Total de documentos:</strong> ${totalCount}
                     </div>
                     <div style="font-size: 12px; color: rgba(255,255,255,0.7);">
-                        Última actualización: ${new Date().toLocaleString('es-ES')}
+                        Última actualización: ${lastUpdate} (Ecuador)
                     </div>
                 </div>
             `;
@@ -867,15 +941,28 @@
             }
             
             try {
-                const exportData = allDocuments.map(doc => ({
-                    'Número': doc.document_number,
-                    'Tipo': getDocumentTypeName(doc.document_type),
-                    'Departamento': getDepartmentName(doc.department),
-                    'Asunto': doc.subject,
-                    'Destinatario': doc.recipient || 'No especificado',
-                    'Fecha': new Date(doc.created_date).toLocaleString('es-ES'),
-                    'Estado': doc.status
-                }));
+                const exportData = allDocuments.map(doc => {
+                    // Ajustar fecha a zona horaria de Ecuador (UTC-5)
+                    const dateObj = new Date(doc.created_date);
+                    const ecuadorDate = new Date(dateObj.getTime() - (5 * 60 * 60 * 1000));
+                    
+                    return {
+                        'Número': doc.document_number,
+                        'Tipo': getDocumentTypeName(doc.document_type),
+                        'Departamento': getDepartmentName(doc.department),
+                        'Asunto': doc.subject,
+                        'Destinatario': doc.recipient || 'No especificado',
+                        'Fecha': ecuadorDate.toLocaleString('es-ES', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        }) + ' (Ecuador)',
+                        'Estado': doc.status
+                    };
+                });
                 
                 const headers = Object.keys(exportData[0]);
                 const csvContent = [
@@ -913,7 +1000,18 @@
             }
             
             const preview = generateDocumentPreview(doc);
-            const date = new Date(doc.created_date).toLocaleString('es-ES');
+            
+            // Ajustar fecha a zona horaria de Ecuador (UTC-5)
+            const dateObj = new Date(doc.created_date);
+            const ecuadorDate = new Date(dateObj.getTime() - (5 * 60 * 60 * 1000));
+            const date = ecuadorDate.toLocaleString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
             
             const modal = `
                 <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" onclick="this.remove()">
@@ -926,7 +1024,7 @@
                             ${preview}
                             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
                                 <p><strong>ID del documento:</strong> ${doc.id}</p>
-                                <p><strong>Fecha de creación:</strong> ${date}</p>
+                                <p><strong>Fecha de creación:</strong> ${date} (Ecuador)</p>
                                 <p><strong>Estado:</strong> ${doc.status}</p>
                             </div>
                         </div>
