@@ -635,9 +635,9 @@
             </div>
             
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 12px; color: rgba(255,255,255,0.6);">
-                <strong>Cuentas de prueba:</strong><br>
-                Admin: admin / admin123<br>
-                Usuario: usuario / usuario123
+                <strong>Credenciales del sistema:</strong><br>
+                Administrador: admin / admin123<br>
+                Acceso estándar: usuario / usuario123
             </div>
         </div>
     </div>
@@ -974,26 +974,41 @@
         let allDocuments = [];
         let currentDocumentData = null;
 
-        // Usuarios del sistema
+        // Sistema de usuarios - CREDENCIALES DEFINITIVAS
         const users = {
-            'admin': { password: 'admin123', role: 'Administrador', name: 'Administrador del Sistema' },
-            'usuario': { password: 'usuario123', role: 'Usuario', name: 'Usuario Regular' }
+            'admin': { 
+                password: 'admin123', 
+                role: 'Administrador', 
+                name: 'Administrador del Sistema' 
+            },
+            'usuario': { 
+                password: 'usuario123', 
+                role: 'Usuario', 
+                name: 'Usuario Regular' 
+            }
         };
+
+        console.log('✅ Variables inicializadas correctamente');
 
         // Inicializar Supabase
         function initializeSupabase() {
             try {
+                console.log('🔧 Verificando disponibilidad de Supabase...');
+                
                 if (typeof supabase === 'undefined') {
-                    throw new Error('Supabase library not loaded');
+                    throw new Error('Biblioteca Supabase no está cargada');
                 }
                 
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log('✅ Supabase client inicializado correctamente');
+                console.log('✅ Cliente Supabase inicializado correctamente');
                 updateStatus('🟢 Supabase inicializado correctamente', 'success');
                 
                 // Actualizar estado de conexión
-                document.getElementById('connectionStatus').textContent = '🟢';
-                document.getElementById('connectionStatus').style.color = '#2ecc71';
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    statusElement.textContent = '🟢';
+                    statusElement.style.color = '#2ecc71';
+                }
                 
                 return true;
             } catch (error) {
@@ -1001,8 +1016,11 @@
                 updateStatus('🔴 Error inicializando Supabase: ' + error.message, 'error');
                 
                 // Actualizar estado de conexión
-                document.getElementById('connectionStatus').textContent = '🔴';
-                document.getElementById('connectionStatus').style.color = '#e74c3c';
+                const statusElement = document.getElementById('connectionStatus');
+                if (statusElement) {
+                    statusElement.textContent = '🔴';
+                    statusElement.style.color = '#e74c3c';
+                }
                 
                 return false;
             }
@@ -1010,11 +1028,16 @@
 
         // Función de login
         function doLogin() {
+            console.log('🔑 Iniciando proceso de login...');
+            
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
             const errorDiv = document.getElementById('loginError');
 
+            console.log('Datos de login:', { username, password: password ? '[OCULTO]' : 'vacío' });
+
             if (!username || !password) {
+                console.log('❌ Campos vacíos');
                 showLoginError('Complete todos los campos');
                 return;
             }
@@ -1025,25 +1048,29 @@
                     ...users[username]
                 };
 
-                console.log('✅ Login exitoso:', currentUser);
+                console.log('✅ Login exitoso:', { username: currentUser.username, role: currentUser.role });
                 hideLoginError();
                 showMainApp();
             } else {
+                console.log('❌ Credenciales incorrectas');
                 showLoginError('Usuario o contraseña incorrectos');
             }
         }
 
         function showLoginError(message) {
+            console.log('❌ Error de login:', message);
             const errorDiv = document.getElementById('loginError');
             errorDiv.textContent = message;
             errorDiv.classList.remove('hidden');
         }
 
         function hideLoginError() {
-            document.getElementById('loginError').classList.add('hidden');
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.classList.add('hidden');
         }
 
         function showMainApp() {
+            console.log('🏠 Mostrando aplicación principal...');
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('hidden');
             
@@ -1052,8 +1079,12 @@
             document.getElementById('userAvatar').textContent = '📄';
             
             // Mostrar pestaña de contadores solo para administradores
-            if (currentUser.role === 'Administrador') {
+            if (currentUser && currentUser.role === 'Administrador') {
                 document.getElementById('countersTab').style.display = 'block';
+                console.log('👨‍💼 Usuario administrador - habilitando funciones avanzadas');
+            } else {
+                document.getElementById('countersTab').style.display = 'none';
+                console.log('👤 Usuario estándar - funciones básicas');
             }
             
             // Cargar datos iniciales
@@ -2140,6 +2171,8 @@
 
         // Event listeners para Enter en login
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 Configurando event listeners...');
+            
             const usernameField = document.getElementById('username');
             const passwordField = document.getElementById('password');
             
@@ -2150,6 +2183,7 @@
                         passwordField.focus();
                     }
                 });
+                console.log('✅ Event listener configurado para campo username');
             }
             
             if (passwordField) {
@@ -2159,23 +2193,37 @@
                         doLogin();
                     }
                 });
+                console.log('✅ Event listener configurado para campo password');
             }
         });
 
         // Inicialización cuando se carga la página
         window.addEventListener('load', function() {
-            console.log('🌐 Página cargada, inicializando SINTEL...');
+            console.log('🌐 Página completamente cargada');
             
-            if (initializeSupabase()) {
-                updateStatus('🟢 SINTEL inicializado correctamente con Supabase', 'success');
-                console.log('✅ SINTEL inicializado correctamente');
-            } else {
-                updateStatus('🔴 Error inicializando SINTEL', 'error');
-                console.log('❌ Error inicializando SINTEL');
+            try {
+                if (initializeSupabase()) {
+                    updateStatus('🟢 SINTEL inicializado correctamente con Supabase', 'success');
+                    console.log('✅ SINTEL inicializado exitosamente');
+                } else {
+                    updateStatus('🔴 Error inicializando SINTEL', 'error');
+                    console.log('❌ Error en la inicialización de SINTEL');
+                }
+            } catch (error) {
+                console.error('❌ Error fatal en inicialización:', error);
+                updateStatus('🔴 Error fatal: ' + error.message, 'error');
             }
         });
 
-        console.log('✅ Sistema SINTEL cargado completamente');
+        console.log('✅ Sistema SINTEL - Todos los scripts cargados correctamente');
+        
+        // Función global de prueba
+        window.testLogin = function() {
+            console.log('🧪 Función de prueba ejecutada');
+            console.log('🔑 doLogin disponible:', typeof doLogin);
+            console.log('👥 users definido:', typeof users);
+            console.log('🏠 showMainApp disponible:', typeof showMainApp);
+        };
     </script>
 </body>
 </html>
