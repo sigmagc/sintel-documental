@@ -1191,7 +1191,7 @@
                 const { count: todayDocuments } = await supabaseClient
                     .from('documents')
                     .select('*', { count: 'exact', head: true })
-                    .gte('created_at', today);
+                    .gte('created_date', today);
 
                 // Departamentos activos
                 const { data: departments } = await supabaseClient
@@ -1205,8 +1205,62 @@
                 document.getElementById('todayDocuments').textContent = todayDocuments || 0;
                 document.getElementById('activeDepartments').textContent = activeDepartments || 0;
 
-                console.log('✅ Estadísticas cargadas:', { realTotal, todayDocuments, activeDepartments });
-                updateStatus('🟢 Conectado a Supabase - Estadísticas actualizadas', 'success');
+-- Función para obtener próximo número consecutivo (ACTUALIZADA)
+CREATE OR REPLACE FUNCTION get_next_consecutive_number(
+    doc_type text,
+    dept text,
+    doc_year integer
+) RETURNS integer AS $
+BEGIN
+    RETURN COALESCE(
+        (SELECT MAX(CAST(substring(document_number from '(\d+)-') AS integer)) + 1
+         FROM documents 
+         WHERE document_type = doc_type 
+         AND department = dept 
+         AND EXTRACT(year FROM created_date) = doc_year), 
+        1
+    );
+END;
+$ LANGUAGE plpgsql;
+
+-- Función para reorganizar números (ACTUALIZADA)
+CREATE OR REPLACE FUNCTION reorganize_document_numbers(
+    doc_type text,
+    dept text,
+    doc_year integer
+) RETURNS void AS $
+DECLARE
+    doc_record RECORD;
+    new_number integer := 1;
+    prefix_text text;
+BEGIN
+    CASE doc_type
+        WHEN 'oficio' THEN prefix_text := 'Oficio No.';
+        WHEN 'memorando' THEN prefix_text := 'Memorando No.';
+        WHEN 'orden_compra' THEN prefix_text := 'Orden de Compra No.';
+        WHEN 'proforma' THEN prefix_text := 'Proforma No.';
+        WHEN 'acta_entrega_externa' THEN prefix_text := 'Acta de Entrega-Recepción Externa No.';
+        WHEN 'acta_entrega_interna' THEN prefix_text := 'Acta de Entrega-Recepción Interna No.';
+        WHEN 'acta_reunion' THEN prefix_text := 'Acta de Reunión No.';
+        ELSE prefix_text := 'Documento No.';
+    END CASE;
+    
+    FOR doc_record IN 
+        SELECT id FROM documents 
+        WHERE document_type = doc_type 
+        AND department = dept 
+        AND EXTRACT(year FROM created_date) = doc_year
+        ORDER BY created_date ASC
+    LOOP
+        UPDATE documents 
+        SET document_number = prefix_text || ' ' || 
+            LPAD(new_number::text, 3, '0') || '-' || dept || '-' || doc_year
+        WHERE id = doc_record.id;
+        
+        new_number := new_number + 1;
+    END LOOP;
+END;
+$ LANGUAGE plpgsql;
 
             } catch (error) {
                 console.error('❌ Error cargando estadísticas:', error);
@@ -1227,7 +1281,7 @@
                 const { data: documents, error } = await supabaseClient
                     .from('documents')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order('created_date', { ascending: false });
 
                 if (error) throw error;
 
@@ -1267,14 +1321,14 @@
                 // Obtener todos los documentos agrupados por tipo y departamento
                 const { data: documents, error } = await supabaseClient
                     .from('documents')
-                    .select('document_type, department, created_at');
+                    .select('document_type, department, created_date');
 
                 if (error) throw error;
 
                 // Agrupar por tipo, departamento y año
                 const groups = {};
                 documents.forEach(doc => {
-                    const year = new Date(doc.created_at).getFullYear();
+                    const year = new Date(doc.created_date).getFullYear();
                     const key = `${doc.document_type}_${doc.department}_${year}`;
                     
                     if (!groups[key]) {
@@ -1321,7 +1375,7 @@
                 // 1. Obtener información del documento antes de eliminarlo
                 const { data: docData, error: selectError } = await supabaseClient
                     .from('documents')
-                    .select('document_type, department, created_at, document_number')
+                    .select('document_type, department, created_date, document_number')
                     .eq('id', documentId)
                     .single();
 
@@ -1345,7 +1399,7 @@
                 console.log('✅ Documento eliminado correctamente');
 
                 // 3. Reorganizar numeración usando la función SQL
-                const year = new Date(docData.created_at).getFullYear();
+                const year = new Date(docData.created_date).getFullYear();
                 
                 const { error: reorganizeError } = await supabaseClient.rpc('reorganize_document_numbers', {
                     doc_type: docData.document_type,
@@ -1564,7 +1618,7 @@
             tbody.innerHTML = '';
             documents.forEach(doc => {
                 const row = tbody.insertRow();
-                const date = new Date(doc.created_at).toLocaleString('es-ES');
+                const date = new Date(doc.created_date).toLocaleString('es-ES');
                 
                 let documentNumber = doc.document_number;
                 console.log('📋 Mostrando documento en historial:', documentNumber);
