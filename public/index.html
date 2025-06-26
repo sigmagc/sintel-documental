@@ -697,6 +697,19 @@
                     </div>
                 </div>
 
+                <!-- CONTADORES EN PANTALLA PRINCIPAL -->
+                <div class="card">
+                    <h2 class="card-title">
+                        📊 Contadores por Departamento y Tipo
+                    </h2>
+                    <div id="mainCountersDisplay">
+                        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                            <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
+                            <div>Cargando contadores...</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- NAVEGACIÓN POR PESTAÑAS -->
                 <div class="nav-tabs">
                     <button class="nav-tab active" onclick="showTab('generator')">
@@ -730,6 +743,10 @@
                                         <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
                                         <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
                                         <option value="acta_reunion">Acta de Reunión</option>
+                                        <option value="informe_tecnico">Informe Técnico</option>
+                                        <option value="informe_viaticos">Informe de Viáticos</option>
+                                        <option value="informe_tecnico">Informe Técnico</option>
+                                        <option value="informe_viaticos">Informe de Viáticos</option>
                                     </select>
                                 </div>
                                 
@@ -811,6 +828,8 @@
                                     <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
                                     <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
                                     <option value="acta_reunion">Acta de Reunión</option>
+                                    <option value="informe_tecnico">Informe Técnico</option>
+                                    <option value="informe_viaticos">Informe de Viáticos</option>
                                 </select>
                             </div>
                             
@@ -1049,6 +1068,10 @@
                 await loadStats();
                 await loadHistory();
                 
+                // SIEMPRE cargar contadores en pantalla principal
+                await loadMainCounters();
+                
+                // Solo cargar contadores detallados para admin
                 if (currentUser.role === 'Administrador') {
                     await loadCounters();
                 }
@@ -1149,7 +1172,127 @@
             }
         }
 
-        async function loadCounters() {
+        async function loadMainCounters() {
+            try {
+                console.log('📊 Cargando contadores para pantalla principal...');
+
+                // Obtener todos los documentos agrupados por tipo y departamento
+                const { data: documents, error } = await supabaseClient
+                    .from('documents')
+                    .select('document_type, department, created_date');
+
+                if (error) throw error;
+
+                // Agrupar por tipo, departamento y año
+                const groups = {};
+                const currentYear = new Date().getFullYear();
+                
+                documents.forEach(doc => {
+                    const year = new Date(doc.created_date).getFullYear();
+                    const key = `${doc.document_type}_${doc.department}_${year}`;
+                    
+                    if (!groups[key]) {
+                        groups[key] = {
+                            document_type: doc.document_type,
+                            department: doc.department,
+                            year: year,
+                            counter: 0
+                        };
+                    }
+                    groups[key].counter++;
+                });
+
+                const counters = Object.values(groups);
+                updateMainCountersDisplay(counters, currentYear);
+
+                console.log('✅ Contadores principales cargados:', counters.length);
+
+            } catch (error) {
+                console.error('❌ Error cargando contadores principales:', error);
+                document.getElementById('mainCountersDisplay').innerHTML = 
+                    '<div style="color: #e74c3c; text-align: center; padding: 20px;">Error cargando contadores</div>';
+            }
+        }
+
+        function updateMainCountersDisplay(counters, currentYear) {
+            const container = document.getElementById('mainCountersDisplay');
+            
+            if (!counters || counters.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
+                        <div>No hay contadores para mostrar</div>
+                        <div style="font-size: 0.9em; margin-top: 5px;">Cree su primer documento para ver los contadores</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Filtrar solo el año actual y agrupar por departamento
+            const currentYearCounters = counters.filter(c => c.year === currentYear);
+            const departmentGroups = {};
+            
+            currentYearCounters.forEach(counter => {
+                if (!departmentGroups[counter.department]) {
+                    departmentGroups[counter.department] = [];
+                }
+                departmentGroups[counter.department].push(counter);
+            });
+            
+            let html = `
+                <div style="margin-bottom: 20px; text-align: center;">
+                    <h3 style="color: #FBB040; margin: 0;">📅 Contadores del Año ${currentYear}</h3>
+                </div>
+            `;
+            
+            if (Object.keys(departmentGroups).length === 0) {
+                html += `
+                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
+                        <div>No hay documentos creados en ${currentYear}</div>
+                        <div style="font-size: 0.9em; margin-top: 5px;">Los contadores aparecerán aquí cuando cree documentos</div>
+                    </div>
+                `;
+            } else {
+                html += '<div class="counters-grid">';
+                
+                // Ordenar departamentos
+                Object.keys(departmentGroups).sort().forEach(dept => {
+                    const deptCounters = departmentGroups[dept];
+                    const totalDept = deptCounters.reduce((sum, c) => sum + c.counter, 0);
+                    
+                    html += `
+                        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border-left: 4px solid #FBB040;">
+                            <h4 style="color: #FBB040; margin: 0 0 15px 0; display: flex; justify-content: space-between; align-items: center;">
+                                <span>🏢 ${getDepartmentName(dept)}</span>
+                                <span style="font-size: 24px; font-weight: bold;">${totalDept}</span>
+                            </h4>
+                            <div style="display: grid; gap: 8px;">
+                    `;
+                    
+                    // Ordenar tipos de documento
+                    deptCounters
+                        .sort((a, b) => getDocumentTypeName(a.document_type).localeCompare(getDocumentTypeName(b.document_type)))
+                        .forEach(counter => {
+                            html += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 5px;">
+                                    <span style="font-size: 13px;">${getDocumentTypeName(counter.document_type)}</span>
+                                    <span style="font-weight: bold; color: #FBB040;">${counter.counter}</span>
+                                </div>
+                            `;
+                        });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+            
+            container.innerHTML = html;
+        }
             if (!currentUser || currentUser.role !== 'Administrador') {
                 return;
             }
@@ -1259,6 +1402,8 @@
                     case 'acta_entrega_externa': prefix = 'Acta de Entrega-Recepción Externa No.'; break;
                     case 'acta_entrega_interna': prefix = 'Acta de Entrega-Recepción Interna No.'; break;
                     case 'acta_reunion': prefix = 'Acta de Reunión No.'; break;
+                    case 'informe_tecnico': prefix = 'Informe Técnico No.'; break;
+                    case 'informe_viaticos': prefix = 'Informe de Viáticos No.'; break;
                     default: prefix = 'Documento No.';
                 }
 
@@ -1365,6 +1510,7 @@
                 // Actualizar datos
                 loadStats();
                 loadHistory();
+                loadMainCounters(); // Actualizar contadores principales
                 if (currentUser.role === 'Administrador') {
                     loadCounters();
                 }
@@ -1440,6 +1586,7 @@
                 // Actualizar interfaz
                 loadStats();
                 loadHistory();
+                loadMainCounters(); // Actualizar contadores principales
                 loadCounters();
 
             } catch (error) {
@@ -1559,6 +1706,7 @@
                 loadCounters();
                 loadStats();
                 loadHistory();
+                loadMainCounters(); // Actualizar contadores principales
 
             } catch (error) {
                 console.error('❌ Error reiniciando contadores:', error);
@@ -1573,6 +1721,8 @@
             
             loadStats();
             loadHistory();
+            loadMainCounters(); // SIEMPRE actualizar contadores principales
+            
             if (currentUser && currentUser.role === 'Administrador') {
                 loadCounters();
                 console.log('👨‍💼 Contadores de admin actualizados desde Supabase');
@@ -1851,7 +2001,9 @@
                 'proforma': 'Proforma',
                 'acta_entrega_externa': 'Acta Entrega Externa',
                 'acta_entrega_interna': 'Acta Entrega Interna',
-                'acta_reunion': 'Acta de Reunión'
+                'acta_reunion': 'Acta de Reunión',
+                'informe_tecnico': 'Informe Técnico',
+                'informe_viaticos': 'Informe de Viáticos'
             };
             return types[type] || type;
         }
