@@ -124,6 +124,7 @@
             <h3>Documentos Existentes</h3>
             <div id="documentsList">Cargando...</div>
             <button onclick="loadDocuments()">Recargar Documentos</button>
+            <button onclick="cleanTestDocuments()">Limpiar Docs de Prueba</button>
             <button onclick="doLogout()">Cerrar Sesión</button>
             
             <div id="appMessage"></div>
@@ -300,14 +301,56 @@
                 const department = document.getElementById('department').value;
                 const currentYear = new Date().getFullYear();
                 
-                // Obtener próximo número (simplificado)
+                // Obtener próximo número consecutivo correctamente
                 const { data: existingDocs } = await supabaseClient
                     .from('documents')
                     .select('document_number')
-                    .like('document_number', `%${department}-${currentYear}%`);
+                    .eq('document_type', type)
+                    .eq('department', department)
+                    .like('document_number', `%-${department}-${currentYear}%`);
                 
-                const nextNumber = (existingDocs?.length || 0) + 1;
-                const docNumber = `${type.charAt(0).toUpperCase() + type.slice(1)} No. ${nextNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
+                console.log('📊 Documentos existentes:', existingDocs);
+                
+                // Extraer números existentes y encontrar el siguiente disponible
+                const existingNumbers = [];
+                if (existingDocs && existingDocs.length > 0) {
+                    existingDocs.forEach(doc => {
+                        const match = doc.document_number.match(/(\d+)-/);
+                        if (match) {
+                            existingNumbers.push(parseInt(match[1]));
+                        }
+                    });
+                }
+                
+                existingNumbers.sort((a, b) => a - b);
+                console.log('🔢 Números existentes ordenados:', existingNumbers);
+                
+                // Encontrar el primer hueco o el siguiente número
+                let nextNumber = 1;
+                for (let i = 0; i < existingNumbers.length; i++) {
+                    if (existingNumbers[i] !== nextNumber) {
+                        break;
+                    }
+                    nextNumber++;
+                }
+                
+                console.log('🎯 Próximo número a usar:', nextNumber);
+                
+                // Determinar prefijo según tipo
+                let prefix;
+                switch (type) {
+                    case 'oficio': prefix = 'Oficio No.'; break;
+                    case 'memorando': prefix = 'Memorando No.'; break;
+                    case 'orden_compra': prefix = 'Orden de Compra No.'; break;
+                    case 'proforma': prefix = 'Proforma No.'; break;
+                    case 'acta_entrega_externa': prefix = 'Acta de Entrega-Recepción Externa No.'; break;
+                    case 'acta_entrega_interna': prefix = 'Acta de Entrega-Recepción Interna No.'; break;
+                    case 'acta_reunion': prefix = 'Acta de Reunión No.'; break;
+                    default: prefix = 'Documento No.';
+                }
+                
+                const docNumber = `${prefix} ${nextNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
+                console.log('📋 Número de documento generado:', docNumber);
                 
                 const docData = {
                     document_number: docNumber,
@@ -319,6 +362,8 @@
                     status: 'Activo'
                 };
                 
+                console.log('💾 Datos del documento a insertar:', docData);
+                
                 const { data, error } = await supabaseClient
                     .from('documents')
                     .insert(docData)
@@ -326,7 +371,7 @@
                 
                 if (error) throw error;
                 
-                console.log('✅ Documento creado:', data);
+                console.log('✅ Documento creado exitosamente:', data);
                 messageDiv.innerHTML = `<div class="success">✅ Documento ${docNumber} creado exitosamente</div>`;
                 document.getElementById('subject').value = '';
                 loadDocuments();
@@ -371,6 +416,36 @@
             } catch (error) {
                 console.error('❌ Error cargando documentos:', error);
                 listDiv.innerHTML = '❌ Error cargando documentos: ' + error.message;
+            }
+        }
+
+        // Limpiar documentos de prueba
+        async function cleanTestDocuments() {
+            console.log('🧹 Limpiando documentos de prueba...');
+            const messageDiv = document.getElementById('appMessage');
+            
+            if (!confirm('¿Eliminar todos los documentos que contengan "TEST" o "prueba"?')) {
+                return;
+            }
+            
+            try {
+                messageDiv.innerHTML = '<div>🔄 Eliminando documentos de prueba...</div>';
+                
+                // Eliminar documentos que contengan "TEST" o "prueba"
+                const { error } = await supabaseClient
+                    .from('documents')
+                    .delete()
+                    .or('document_number.ilike.%TEST%,subject.ilike.%prueba%,subject.ilike.%test%');
+                
+                if (error) throw error;
+                
+                console.log('✅ Documentos de prueba eliminados');
+                messageDiv.innerHTML = '<div class="success">✅ Documentos de prueba eliminados</div>';
+                loadDocuments();
+                
+            } catch (error) {
+                console.error('❌ Error eliminando documentos de prueba:', error);
+                messageDiv.innerHTML = '<div class="error">❌ Error: ' + error.message + '</div>';
             }
         }
 
