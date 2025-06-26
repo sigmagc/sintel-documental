@@ -1170,45 +1170,53 @@
             try {
                 console.log('📊 Cargando estadísticas desde Supabase...');
 
+                // Probar conexión primero
+                const { data: testData, error: testError } = await supabaseClient
+                    .from('documents')
+                    .select('id', { count: 'exact', head: true });
+
+                if (testError) {
+                    console.error('Error de conexión:', testError);
+                    throw new Error('Error de conexión: ' + testError.message);
+                }
+
                 // Total de documentos
-                const { count: totalDocuments, error: totalError } = await supabaseClient
+                const totalDocuments = testData ? 0 : 0; // El count está en el metadata
+                const { count: realTotal } = await supabaseClient
                     .from('documents')
                     .select('*', { count: 'exact', head: true });
 
-                if (totalError) throw totalError;
-
                 // Documentos de hoy
-                const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-                const { count: todayDocuments, error: todayError } = await supabaseClient
+                const today = new Date().toISOString().split('T')[0];
+                const { count: todayDocuments } = await supabaseClient
                     .from('documents')
                     .select('*', { count: 'exact', head: true })
                     .gte('created_at', today);
 
-                if (todayError) throw todayError;
-
                 // Departamentos activos
-                const { data: departments, error: deptError } = await supabaseClient
+                const { data: departments } = await supabaseClient
                     .from('documents')
                     .select('department');
 
-                if (deptError) throw deptError;
-
-                const activeDepartments = new Set(departments.map(doc => doc.department)).size;
+                const activeDepartments = departments ? new Set(departments.map(doc => doc.department)).size : 0;
 
                 // Actualizar interfaz
-                document.getElementById('totalDocuments').textContent = totalDocuments || 0;
+                document.getElementById('totalDocuments').textContent = realTotal || 0;
                 document.getElementById('todayDocuments').textContent = todayDocuments || 0;
                 document.getElementById('activeDepartments').textContent = activeDepartments || 0;
 
-                console.log('✅ Estadísticas cargadas:', { totalDocuments, todayDocuments, activeDepartments });
-                updateStatus('🟢 Estadísticas actualizadas desde Supabase', 'success');
+                console.log('✅ Estadísticas cargadas:', { realTotal, todayDocuments, activeDepartments });
+                updateStatus('🟢 Conectado a Supabase - Estadísticas actualizadas', 'success');
 
             } catch (error) {
                 console.error('❌ Error cargando estadísticas:', error);
-                document.getElementById('totalDocuments').textContent = '-';
-                document.getElementById('todayDocuments').textContent = '-';
-                document.getElementById('activeDepartments').textContent = '-';
-                updateStatus('🔴 Error cargando estadísticas de Supabase', 'error');
+                document.getElementById('totalDocuments').textContent = 'Error';
+                document.getElementById('todayDocuments').textContent = 'Error';
+                document.getElementById('activeDepartments').textContent = 'Error';
+                updateStatus('🔴 Error: ' + error.message, 'error');
+                
+                // Mostrar error específico al usuario
+                showAlert('Error conectando con Supabase: ' + error.message, 'error');
             }
         }
 
