@@ -654,8 +654,8 @@
                     </div>
                     
                     <div class="user-info">
-                        <span id="userWelcome">Bienvenido</span>
-                        <div class="user-avatar" id="userAvatar">U</div>
+                        <span id="userWelcome">Sistema SINTEL</span>
+                        <div class="user-avatar" id="userAvatar">📄</div>
                         <button class="btn btn-secondary" onclick="refreshData()">
                             🔄 Actualizar
                         </button>
@@ -871,7 +871,7 @@
                                         <th>Tipo</th>
                                         <th>Departamento</th>
                                         <th>Asunto</th>
-                                        <th>Creado por</th>
+                                        <th>Destinatario</th>
                                         <th>Fecha</th>
                                         <th>Acciones</th>
                                     </tr>
@@ -1009,7 +1009,7 @@
         }
 
         // Función de login
-        async function doLogin() {
+        function doLogin() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
             const errorDiv = document.getElementById('loginError');
@@ -1047,9 +1047,9 @@
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('hidden');
             
-            // Configurar interfaz según el usuario
-            document.getElementById('userWelcome').textContent = `Bienvenido, ${currentUser.name}`;
-            document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+            // NO mostrar información del usuario en el header
+            document.getElementById('userWelcome').textContent = 'Sistema SINTEL';
+            document.getElementById('userAvatar').textContent = '📄';
             
             // Mostrar pestaña de contadores solo para administradores
             if (currentUser.role === 'Administrador') {
@@ -1172,7 +1172,51 @@
             }
         }
 
-        async function loadMainCounters() {
+        async function loadCounters() {
+            if (!currentUser || currentUser.role !== 'Administrador') {
+                return;
+            }
+            
+            try {
+                console.log('📊 Cargando contadores desde Supabase...');
+
+                // Obtener todos los documentos agrupados por tipo y departamento
+                const { data: documents, error } = await supabaseClient
+                    .from('documents')
+                    .select('document_type, department, created_date');
+
+                if (error) throw error;
+
+                // Agrupar por tipo, departamento y año
+                const groups = {};
+                documents.forEach(doc => {
+                    const year = new Date(doc.created_date).getFullYear();
+                    const key = `${doc.document_type}_${doc.department}_${year}`;
+                    
+                    if (!groups[key]) {
+                        groups[key] = {
+                            document_type: doc.document_type,
+                            department: doc.department,
+                            year: year,
+                            counter: 0
+                        };
+                    }
+                    groups[key].counter++;
+                });
+
+                const counters = Object.values(groups);
+                updateCountersDisplay(counters);
+
+                console.log('✅ Contadores cargados desde Supabase:', counters.length);
+                updateStatus('🟢 Contadores actualizados desde Supabase', 'success');
+
+            } catch (error) {
+                console.error('❌ Error cargando contadores:', error);
+                document.getElementById('countersStatus').innerHTML = 
+                    '<div style="color: #e74c3c;">Error cargando contadores de Supabase</div>';
+                updateStatus('🔴 Error cargando contadores de Supabase', 'error');
+            }
+        }
             try {
                 console.log('📊 Cargando contadores para pantalla principal...');
 
@@ -1795,7 +1839,7 @@
                     <td><span style="background: rgba(251,176,64,0.2); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${getDocumentTypeName(doc.document_type)}</span></td>
                     <td><span style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${doc.department}</span></td>
                     <td>${doc.subject}</td>
-                    <td>${doc.created_by}<br><small style="color: rgba(255,255,255,0.6);">${doc.created_by_role}</small></td>
+                    <td>${doc.recipient || 'No especificado'}</td>
                     <td><small>${date}</small></td>
                     <td>
                         <div class="action-buttons">
@@ -1957,9 +2001,7 @@
                     'Tipo': getDocumentTypeName(doc.document_type),
                     'Departamento': getDepartmentName(doc.department),
                     'Asunto': doc.subject,
-                    'Destinatario': doc.recipient || '',
-                    'Creado por': doc.created_by,
-                    'Rol': doc.created_by_role,
+                    'Destinatario': doc.recipient || 'No especificado',
                     'Fecha': new Date(doc.created_date).toLocaleString('es-ES'),
                     'Estado': doc.status
                 }));
