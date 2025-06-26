@@ -727,6 +727,7 @@
                                         <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
                                         <option value="acta_reunion">Acta de Reunión</option>
                                         <option value="informe_tecnico">Informe Técnico</option>
+                                        <option value="informe_viaticos">Informe Viáticos</option>
                                     </select>
                                 </div>
                                 
@@ -808,6 +809,8 @@
                                     <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
                                     <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
                                     <option value="acta_reunion">Acta de Reunión</option>
+                                    <option value="informe_tecnico">Informe Técnico</option>
+                                    <option value="informe_viaticos">Informe Viáticos</option>
                                 </select>
                             </div>
                             
@@ -907,6 +910,8 @@
                                         <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
                                         <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
                                         <option value="acta_reunion">Acta de Reunión</option>
+                                         <option value="informe_tecnico">Informe Técnico</option>
+                                        <option value="informe_viaticos">Informe Viáticos</option>
                                     </select>
                                 </div>
                             </div>
@@ -1256,6 +1261,8 @@
                     case 'acta_entrega_externa': prefix = 'Acta de Entrega-Recepción Externa No.'; break;
                     case 'acta_entrega_interna': prefix = 'Acta de Entrega-Recepción Interna No.'; break;
                     case 'acta_reunion': prefix = 'Acta de Reunión No.'; break;
+                    case 'Informe_tecnico': prefix = 'Informe técnico No.'; break;
+                    case 'Informe_viaticos': prefix = 'Informe viaticos No.'; break;
                     default: prefix = 'Documento No.';
                 }
 
@@ -1848,7 +1855,9 @@
                 'proforma': 'Proforma',
                 'acta_entrega_externa': 'Acta Entrega Externa',
                 'acta_entrega_interna': 'Acta Entrega Interna',
-                'acta_reunion': 'Acta de Reunión'
+                'acta_reunion': 'Acta de Reunión',
+                'informe_tecnico': 'Informe Técnico',
+                'informe_viaticos': 'Informe Viáticos'
             };
             return types[type] || type;
         }
