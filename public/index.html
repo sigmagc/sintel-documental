@@ -3,1951 +3,419 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión Documental SINTEL</title>
+    <title>Sistema de Gestión Documental SINTEL - DEBUG</title>
     
     <!-- Agregar Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #092947 0%, #0a3555 100%);
             min-height: 100vh;
+            margin: 0;
             padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #092947, #0a3555);
             color: white;
+        }
+
+        .debug-container {
+            max-width: 500px;
+            margin: 50px auto;
+            background: white;
             padding: 30px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .logo-icon {
-            width: 60px;
-            height: 60px;
-            background: #FBB040;
             border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
+            color: #333;
         }
 
-        .logo-icon::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, 
-                transparent 20%, 
-                rgba(255,255,255,0.1) 20%, 
-                rgba(255,255,255,0.1) 25%, 
-                transparent 25%, 
-                transparent 45%, 
-                rgba(255,255,255,0.1) 45%, 
-                rgba(255,255,255,0.1) 50%, 
-                transparent 50%);
-        }
-
-        .logo-icon::after {
-            content: '📊';
-            font-size: 28px;
-            z-index: 1;
-            position: relative;
-        }
-
-        .header-text {
-            flex: 1;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 5px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            color: #FBB040;
-        }
-
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-
-        .user-info {
-            background: rgba(251, 176, 64, 0.2);
-            padding: 15px 20px;
-            border-radius: 10px;
-            text-align: right;
-            border: 1px solid rgba(251, 176, 64, 0.3);
-        }
-
-        .user-role {
-            font-size: 0.9em;
-            opacity: 0.8;
-        }
-
-        .logout-btn {
-            background: rgba(231, 76, 60, 0.8);
-            color: white;
-            border: none;
-            padding: 8px 15px;
+        .debug-info {
+            background: #f0f0f0;
+            padding: 15px;
             border-radius: 5px;
-            cursor: pointer;
-            margin-top: 8px;
-            font-size: 0.9em;
-            transition: all 0.3s ease;
-        }
-
-        .logout-btn:hover {
-            background: rgba(231, 76, 60, 1);
-            transform: translateY(-1px);
-        }
-
-        .status-bar {
-            background: #FBB040;
-            color: #092947;
-            padding: 12px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-
-        /* Login Form Styles */
-        .login-container {
-            max-width: 450px;
-            margin: 100px auto;
-            background: white;
-            padding: 50px;
-            border-radius: 20px;
-            box-shadow: 0 25px 50px rgba(9, 41, 71, 0.3);
-            border: 3px solid #FBB040;
-        }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .login-logo {
-            width: 80px;
-            height: 80px;
-            background: #FBB040;
-            border-radius: 15px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
             margin-bottom: 20px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .login-logo::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, 
-                transparent 20%, 
-                rgba(255,255,255,0.1) 20%, 
-                rgba(255,255,255,0.1) 25%, 
-                transparent 25%, 
-                transparent 45%, 
-                rgba(255,255,255,0.1) 45%, 
-                rgba(255,255,255,0.1) 50%, 
-                transparent 50%);
-        }
-
-        .login-logo::after {
-            content: '📊';
-            font-size: 36px;
-            z-index: 1;
-            position: relative;
-        }
-
-        .login-header h1 {
-            color: #092947;
-            margin-bottom: 10px;
-            font-size: 2.8em;
-            font-weight: bold;
-        }
-
-        .login-header p {
-            color: #666;
-            font-size: 1.1em;
-        }
-
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-        }
-
-        .credentials-info {
-            background: linear-gradient(135deg, rgba(251, 176, 64, 0.1), rgba(251, 176, 64, 0.05));
-            border: 2px solid rgba(251, 176, 64, 0.3);
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 25px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .credentials-info h4 {
-            color: #092947;
-            margin-bottom: 15px;
-            font-size: 1.1em;
-        }
-
-        .main-content {
-            padding: 40px;
-        }
-
-        .form-section {
-            background: linear-gradient(135deg, rgba(251, 176, 64, 0.05), rgba(251, 176, 64, 0.02));
-            padding: 35px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 25px rgba(9, 41, 71, 0.1);
-            border: 2px solid rgba(251, 176, 64, 0.2);
-        }
-
-        .form-section h2 {
-            color: #092947;
-            margin-bottom: 25px;
-            font-size: 1.8em;
-            border-bottom: 3px solid #FBB040;
-            padding-bottom: 10px;
-        }
-
-        .admin-section {
-            border: 2px solid #e74c3c;
-            background: linear-gradient(135deg, rgba(231, 76, 60, 0.05), rgba(231, 76, 60, 0.02));
-        }
-
-        .admin-section h2 {
-            border-bottom-color: #e74c3c;
-        }
-
-        .form-group {
-            margin-bottom: 25px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: bold;
-            color: #092947;
-            font-size: 1.1em;
-        }
-
-        select, input, textarea {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid rgba(9, 41, 71, 0.2);
-            border-radius: 10px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            background: white;
-        }
-
-        select:focus, input:focus, textarea:focus {
-            outline: none;
-            border-color: #FBB040;
-            box-shadow: 0 0 0 4px rgba(251, 176, 64, 0.2);
-            transform: translateY(-1px);
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #FBB040, #e09935);
-            color: #092947;
-            padding: 15px 35px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            margin-right: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 15px rgba(251, 176, 64, 0.3);
-        }
-
-        .btn:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(251, 176, 64, 0.4);
-            background: linear-gradient(135deg, #e09935, #d18a2e);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #092947, #0a3555);
-            color: white;
-            box-shadow: 0 4px 15px rgba(9, 41, 71, 0.3);
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            box-shadow: 0 8px 25px rgba(9, 41, 71, 0.4);
-            background: linear-gradient(135deg, #0a3555, #0b3d60);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
-        }
-
-        .btn-danger:hover:not(:disabled) {
-            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
-        }
-
-        .document-preview {
-            background: white;
-            border: 3px solid #FBB040;
-            border-radius: 15px;
-            padding: 35px;
-            margin-top: 25px;
-            box-shadow: 0 8px 25px rgba(9, 41, 71, 0.1);
-        }
-
-        .document-number {
-            font-size: 1.6em;
-            font-weight: bold;
-            color: #092947;
-            margin-bottom: 25px;
-            padding: 20px;
-            background: linear-gradient(135deg, rgba(251, 176, 64, 0.1), rgba(251, 176, 64, 0.05));
-            border-radius: 10px;
-            text-align: center;
-            border: 2px solid rgba(251, 176, 64, 0.3);
-        }
-
-        .history-section {
-            margin-top: 40px;
-        }
-
-        .history-section h2 {
-            color: #092947;
-            margin-bottom: 25px;
-            font-size: 1.8em;
-            border-bottom: 3px solid #FBB040;
-            padding-bottom: 10px;
-        }
-
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 8px 25px rgba(9, 41, 71, 0.1);
-            border: 2px solid rgba(251, 176, 64, 0.2);
-        }
-
-        .history-table th {
-            background: linear-gradient(135deg, #092947, #0a3555);
-            color: white;
-            padding: 18px 15px;
-            text-align: left;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-
-        .history-table th:first-child {
-            border-top-left-radius: 15px;
-        }
-
-        .history-table th:last-child {
-            border-top-right-radius: 15px;
-        }
-
-        .history-table td {
-            padding: 15px;
-            border-bottom: 1px solid rgba(9, 41, 71, 0.1);
-        }
-
-        .history-table tr:hover {
-            background: linear-gradient(135deg, rgba(251, 176, 64, 0.05), rgba(251, 176, 64, 0.02));
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-
-        .status-active {
-            background: #FBB040;
-            box-shadow: 0 0 10px rgba(251, 176, 64, 0.5);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 25px;
-            margin-bottom: 35px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #092947, #0a3555);
-            color: white;
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(9, 41, 71, 0.3);
-            border: 2px solid rgba(251, 176, 64, 0.3);
-            transition: transform 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .stat-number {
-            font-size: 3em;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #FBB040;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .stat-label {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-
-        .alert {
-            padding: 18px;
-            border-radius: 10px;
-            margin-bottom: 25px;
-            display: none;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(39, 174, 96, 0.05));
-            color: #155724;
-            border: 2px solid rgba(39, 174, 96, 0.3);
-        }
-
-        .alert-error {
-            background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05));
-            color: #721c24;
-            border: 2px solid rgba(231, 76, 60, 0.3);
-        }
-
-        .row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #FBB040;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .admin-counter {
-            background: white;
-            border: 2px solid rgba(9, 41, 71, 0.1);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .admin-counter:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(9, 41, 71, 0.1);
-        }
-
-        .admin-counter.has-documents {
-            border-left: 5px solid #FBB040;
-            background: linear-gradient(135deg, rgba(251, 176, 64, 0.05), rgba(251, 176, 64, 0.02));
-        }
-
-        .admin-counter.empty {
-            border-left: 5px solid #95a5a6;
-            opacity: 0.7;
-        }
-
-        .delete-btn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
+            font-family: monospace;
             font-size: 12px;
-            transition: all 0.3s ease;
         }
 
-        .delete-btn:hover {
-            background: #c0392b;
-            transform: translateY(-1px);
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #FBB040;
+            color: #092947;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #e09935;
+        }
+
+        .error {
+            color: red;
+            margin: 10px 0;
+        }
+
+        .success {
+            color: green;
+            margin: 10px 0;
         }
 
         .hidden {
-            display: none !important;
-        }
-
-        @media (max-width: 768px) {
-            .row {
-                grid-template-columns: 1fr;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .header {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .user-info {
-                margin-top: 20px;
-            }
-
-            .logo-container {
-                justify-content: center;
-            }
+            display: none;
         }
     </style>
 </head>
 <body>
-    <!-- Login Container -->
-    <div id="loginContainer" class="login-container">
-        <div class="login-header">
-            <div class="login-logo"></div>
-            <h1>SINTEL</h1>
-            <p>Sistema de Gestión Documental</p>
-        </div>
+    <div class="debug-container">
+        <h1>🔧 SINTEL - Diagnóstico</h1>
         
-        <div class="login-form">
-            <div class="form-group">
-                <label for="username">Usuario</label>
-                <input type="text" id="username" placeholder="Ingrese su usuario">
-            </div>
-            <div class="form-group">
-                <label for="password">Contraseña</label>
-                <input type="password" id="password" placeholder="Ingrese su contraseña">
-            </div>
-            <button class="btn" onclick="doLogin()">🔐 Iniciar Sesión</button>
-        </div>
-        <div id="loginAlert" class="alert alert-error" style="margin-top: 20px;">
-            Usuario o contraseña incorrectos
-        </div>
-    </div>
-
-    <!-- Main Application Container -->
-    <div id="mainContainer" class="container hidden">
-        <div class="header">
-            <div class="logo-container">
-                <div class="logo-icon"></div>
-                <div class="header-text">
-                    <h1>SINTEL</h1>
-                    <p>Sistema de Gestión Documental</p>
-                </div>
-            </div>
-            <div class="user-info">
-                <div><strong id="currentUser">Usuario</strong></div>
-                <div class="user-role" id="currentRole">Rol</div>
-                <button class="logout-btn" onclick="doLogout()">🚪 Cerrar Sesión</button>
-            </div>
+        <div class="debug-info">
+            <strong>Estado del Sistema:</strong><br>
+            Supabase Client: <span id="supabaseStatus">Verificando...</span><br>
+            Funciones JS: <span id="jsStatus">Verificando...</span><br>
+            Conexión DB: <span id="dbStatus">Pendiente...</span>
         </div>
 
-        <div class="status-bar" id="statusBar">
-            🟢 Sistema conectado - Supabase PostgreSQL activa
+        <!-- Login Simple -->
+        <div id="loginSection">
+            <h2>🔐 Iniciar Sesión</h2>
+            <input type="text" id="username" placeholder="Usuario (admin o usuario)" value="admin">
+            <input type="password" id="password" placeholder="Contraseña" value="admin123">
+            <button onclick="testLogin()">Probar Login</button>
+            <div id="loginMessage"></div>
         </div>
 
-        <div class="main-content">
-            <div id="alertContainer"></div>
+        <!-- Test de Conexión -->
+        <div id="testSection" class="hidden">
+            <h2>✅ Login Exitoso</h2>
+            <p>Usuario: <strong id="currentUserName"></strong></p>
+            <button onclick="testSupabaseConnection()">Probar Conexión Supabase</button>
+            <button onclick="testDocumentCreation()">Probar Crear Documento</button>
+            <button onclick="showMainApp()">Ir a la App Principal</button>
+            <div id="testMessage"></div>
+        </div>
 
-            <!-- Estadísticas -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-number" id="totalDocuments">-</div>
-                    <div class="stat-label">Documentos Generados</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="todayDocuments">-</div>
-                    <div class="stat-label">Documentos Hoy</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="activeDepartments">-</div>
-                    <div class="stat-label">Departamentos Activos</div>
-                </div>
-            </div>
-
-            <!-- Formulario de generación -->
-            <div class="form-section">
-                <h2>🆕 Generar Nuevo Documento</h2>
-                
-                <div class="row">
-                    <div>
-                        <div class="form-group">
-                            <label for="documentType">Tipo de Documento</label>
-                            <select id="documentType">
-                                <option value="oficio">Oficio</option>
-                                <option value="memorando">Memorando</option>
-                                <option value="orden_compra">Orden de Compra</option>
-                                <option value="proforma">Proforma</option>
-                                <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
-                                <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
-                                <option value="acta_reunion">Acta de Reunión</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="department">Departamento</label>
-                            <select id="department">
-                                <option value="GGE">Gerencia General (GGE)</option>
-                                <option value="CAF">Contabilidad y Finanzas (CAF)</option>
-                                <option value="PMO">Oficina de Proyectos (PMO)</option>
-                                <option value="VTA">Ventas (VTA)</option>
-                                <option value="RHU">Recursos Humanos (RHU)</option>
-                                <option value="TEC">Técnico (TEC)</option>
-                                <option value="LEG">Legal (LEG)</option>
-                                <option value="ADM">Administración (ADM)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="subject">Asunto del Documento *</label>
-                            <input type="text" id="subject" placeholder="Ingrese el asunto del documento" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="recipient">Destinatario</label>
-                            <input type="text" id="recipient" placeholder="Nombre del destinatario">
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="form-group">
-                            <label for="content">Contenido del Documento</label>
-                            <textarea id="content" rows="8" placeholder="Escriba el contenido del documento aquí..."></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <button class="btn" onclick="generateDocument()" id="generateBtn">
-                    📄 Generar Documento
-                </button>
-                <button class="btn btn-secondary" onclick="previewNext()" id="previewBtn">
-                    👁️ Ver Próximo Número
-                </button>
-                <button class="btn btn-secondary" onclick="refreshData()">
-                    🔄 Actualizar Datos
-                </button>
-            </div>
-
-            <!-- Panel de Administración (Solo para administradores) -->
-            <div id="adminPanel" class="form-section admin-section hidden">
-                <h2 style="color: #e74c3c;">⚠️ Panel de Administración</h2>
-                <p style="color: #721c24; margin-bottom: 20px;">
-                    <strong>Atención:</strong> Estas acciones son irreversibles. Use con precaución.
-                </p>
-                
-                <div class="row">
-                    <div>
-                        <h3>🗑️ Eliminar Documentos</h3>
-                        <button class="btn btn-danger" onclick="confirmDeleteAll()">
-                            🗑️ Eliminar Todos los Documentos
-                        </button>
-                        <br><br>
-                        
-                        <h3>🔄 Reiniciar Contadores</h3>
-                        <div class="form-group">
-                            <label for="resetDepartment">Departamento</label>
-                            <select id="resetDepartment">
-                                <option value="">-- Todos los departamentos --</option>
-                                <option value="GGE">Gerencia General (GGE)</option>
-                                <option value="CAF">Contabilidad y Finanzas (CAF)</option>
-                                <option value="PMO">Oficina de Proyectos (PMO)</option>
-                                <option value="VTA">Ventas (VTA)</option>
-                                <option value="RHU">Recursos Humanos (RHU)</option>
-                                <option value="TEC">Técnico (TEC)</option>
-                                <option value="LEG">Legal (LEG)</option>
-                                <option value="ADM">Administración (ADM)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="resetType">Tipo de Documento</label>
-                            <select id="resetType">
-                                <option value="">-- Todos los tipos --</option>
-                                <option value="oficio">Oficio</option>
-                                <option value="memorando">Memorando</option>
-                                <option value="orden_compra">Orden de Compra</option>
-                                <option value="proforma">Proforma</option>
-                                <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
-                                <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
-                                <option value="acta_reunion">Acta de Reunión</option>
-                            </select>
-                        </div>
-                        
-                        <button class="btn btn-secondary" onclick="resetCounters()">
-                            🔄 Reiniciar Contadores
-                        </button>
-                    </div>
-                    
-                    <div>
-                        <h3>📊 Estado de Contadores</h3>
-                        <div id="countersStatus" style="background: white; padding: 15px; border-radius: 5px; max-height: 300px; overflow-y: auto;">
-                            <div style="text-align: center; color: #7f8c8d;">
-                                Cargando contadores...
-                            </div>
-                        </div>
-                        <br>
-                        <button class="btn btn-secondary" onclick="loadCounters()">
-                            🔄 Actualizar Estado
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Vista previa del documento -->
-            <div id="documentPreview" class="document-preview" style="display: none;">
-                <div class="document-number" id="generatedNumber"></div>
-                <div id="documentContent"></div>
-                <br>
-                <button class="btn" onclick="downloadWord()">📥 Descargar Word</button>
-                <button class="btn btn-secondary" onclick="clearPreview()">🗑️ Limpiar Vista</button>
-            </div>
-
-            <!-- Historial -->
-            <div class="history-section">
-                <h2>📋 Historial de Documentos</h2>
-                
-                <!-- Filtros del historial -->
-                <div class="form-section" style="margin-bottom: 20px; padding: 20px;">
-                    <h3>🔍 Filtros de Búsqueda</h3>
-                    <div class="row">
-                        <div>
-                            <div class="form-group">
-                                <label for="filterType">Filtrar por Tipo de Documento</label>
-                                <select id="filterType" onchange="filterHistory()">
-                                    <option value="">-- Todos los tipos --</option>
-                                    <option value="oficio">Oficio</option>
-                                    <option value="memorando">Memorando</option>
-                                    <option value="orden_compra">Orden de Compra</option>
-                                    <option value="proforma">Proforma</option>
-                                    <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
-                                    <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
-                                    <option value="acta_reunion">Acta de Reunión</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="form-group">
-                                <label for="filterDepartment">Filtrar por Departamento</label>
-                                <select id="filterDepartment" onchange="filterHistory()">
-                                    <option value="">-- Todos los departamentos --</option>
-                                    <option value="GGE">Gerencia General (GGE)</option>
-                                    <option value="CAF">Contabilidad y Finanzas (CAF)</option>
-                                    <option value="PMO">Oficina de Proyectos (PMO)</option>
-                                    <option value="VTA">Ventas (VTA)</option>
-                                    <option value="RHU">Recursos Humanos (RHU)</option>
-                                    <option value="TEC">Técnico (TEC)</option>
-                                    <option value="LEG">Legal (LEG)</option>
-                                    <option value="ADM">Administración (ADM)</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <button class="btn btn-secondary" onclick="clearFilters()">🗑️ Limpiar Filtros</button>
-                    <button class="btn btn-secondary" onclick="loadHistory()">🔄 Actualizar Historial</button>
-                </div>
-
-                <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>Número</th>
-                            <th>Tipo</th>
-                            <th>Departamento</th>
-                            <th>Asunto</th>
-                            <th>Fecha</th>
-                            <th>Estado</th>
-                            <th id="actionsHeader">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historyTable">
-                        <tr>
-                            <td colspan="7" style="text-align: center; padding: 30px;">
-                                <div class="loading"></div> Cargando historial...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                
-                <!-- Información de resultados -->
-                <div id="historyInfo" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; text-align: center; display: none;">
-                    <span id="historyCount">0</span> documentos encontrados
-                </div>
-            </div>
+        <!-- App Principal (simplificada) -->
+        <div id="mainApp" class="hidden">
+            <h2>📄 SINTEL - App Principal</h2>
+            <p>Usuario: <strong id="mainUserName"></strong></p>
+            
+            <h3>Crear Documento</h3>
+            <select id="docType">
+                <option value="oficio">Oficio</option>
+                <option value="memorando">Memorando</option>
+                <option value="proforma">Proforma</option>
+            </select>
+            <select id="department">
+                <option value="GGE">Gerencia General (GGE)</option>
+                <option value="PMO">Oficina de Proyectos (PMO)</option>
+                <option value="CAF">Contabilidad y Finanzas (CAF)</option>
+            </select>
+            <input type="text" id="subject" placeholder="Asunto del documento">
+            <button onclick="createDocument()">Crear Documento</button>
+            
+            <h3>Documentos Existentes</h3>
+            <div id="documentsList">Cargando...</div>
+            <button onclick="loadDocuments()">Recargar Documentos</button>
+            <button onclick="doLogout()">Cerrar Sesión</button>
+            
+            <div id="appMessage"></div>
         </div>
     </div>
 
     <script>
+        console.log('🚀 Iniciando diagnóstico SINTEL...');
+
         // Variables globales
-        let currentDocument = null;
         let currentUser = null;
-        let allDocuments = []; // Almacenar todos los documentos para filtrado
+        let supabaseClient = null;
 
-        // 🔥 CONFIGURACIÓN DE SUPABASE - CREDENCIALES REALES
-        const SUPABASE_URL = 'https://xgfzyoxdokemeekqgxyp.supabase.co'
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnZnp5b3hkb2tlbWVla3FneHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5Mzk5MDIsImV4cCI6MjA2NTUxNTkwMn0.ku5o86yfB6F5T9akZ2oVHV0ze5UEFZ18IRpoFNbDBU4'
-
-        // Crear cliente de Supabase
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+        // Configuración de Supabase
+        const SUPABASE_URL = 'https://xgfzyoxdokemeekqgxyp.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnZnp5b3hkb2tlbWVla3FneHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5Mzk5MDIsImV4cCI6MjA2NTUxNTkwMn0.ku5o86yfB6F5T9akZ2oVHV0ze5UEFZ18IRpoFNbDBU4';
 
         // Usuarios del sistema
         const users = {
-            'admin': {
-                password: 'admin123',
-                role: 'Administrador',
-                name: 'Administrador del Sistema'
-            },
-            'usuario': {
-                password: 'usuario123',
-                role: 'Usuario',
-                name: 'Usuario Regular'
+            'admin': { password: 'admin123', role: 'Administrador', name: 'Administrador del Sistema' },
+            'usuario': { password: 'usuario123', role: 'Usuario', name: 'Usuario Regular' }
+        };
+
+        // Inicialización
+        function initializeApp() {
+            console.log('🔧 Inicializando aplicación...');
+            
+            // Verificar Supabase
+            try {
+                if (typeof supabase !== 'undefined') {
+                    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    document.getElementById('supabaseStatus').textContent = '✅ Cargado';
+                    document.getElementById('supabaseStatus').style.color = 'green';
+                } else {
+                    throw new Error('Supabase no disponible');
+                }
+            } catch (error) {
+                console.error('❌ Error inicializando Supabase:', error);
+                document.getElementById('supabaseStatus').textContent = '❌ Error: ' + error.message;
+                document.getElementById('supabaseStatus').style.color = 'red';
             }
-        };
 
-        // Mapeo de tipos de documento
-        const documentTypeMapping = {
-            'oficio': { prefix: 'Oficio No.', name: 'Oficio' },
-            'memorando': { prefix: 'Memorando No.', name: 'Memorando' },
-            'orden_compra': { prefix: 'Orden de Compra No.', name: 'Orden de Compra' },
-            'proforma': { prefix: 'Proforma No.', name: 'Proforma' },
-            'acta_entrega_externa': { prefix: 'Acta de Entrega-Recepción Externa No.', name: 'Acta de Entrega-Recepción Externa' },
-            'acta_entrega_interna': { prefix: 'Acta de Entrega-Recepción Interna No.', name: 'Acta de Entrega-Recepción Interna' },
-            'acta_reunion': { prefix: 'Acta de Reunión No.', name: 'Acta de Reunión' }
-        };
+            // Verificar funciones JS
+            document.getElementById('jsStatus').textContent = '✅ Funciones cargadas';
+            document.getElementById('jsStatus').style.color = 'green';
+            
+            console.log('✅ Inicialización completada');
+        }
 
-        // ================================
-        // FUNCIONES DE AUTENTICACIÓN
-        // ================================
-
-        function doLogin() {
-            console.log('Ejecutando login...');
+        // Test de login
+        function testLogin() {
+            console.log('🔑 Probando login...');
             
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
+            const messageDiv = document.getElementById('loginMessage');
             
-            console.log('Usuario ingresado:', username);
+            console.log('Usuario:', username, 'Password:', password);
             
             if (!username || !password) {
-                showLoginError('Por favor complete todos los campos');
+                messageDiv.innerHTML = '<div class="error">❌ Complete todos los campos</div>';
                 return;
             }
             
             if (users[username] && users[username].password === password) {
-                console.log('✅ Login exitoso');
-                
                 currentUser = {
                     username: username,
                     ...users[username]
                 };
                 
-                // Guardar en sessionStorage
-                try {
-                    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    console.log('✅ Usuario guardado en sesión');
-                } catch (e) {
-                    console.error('Error guardando sesión:', e);
-                }
+                console.log('✅ Login exitoso:', currentUser);
+                messageDiv.innerHTML = '<div class="success">✅ Login exitoso</div>';
                 
-                showMainApp();
-                showAlert(`¡Bienvenido, ${currentUser.name}!`, 'success');
+                document.getElementById('currentUserName').textContent = currentUser.name;
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('testSection').classList.remove('hidden');
                 
             } else {
                 console.log('❌ Login fallido');
-                showLoginError('Usuario o contraseña incorrectos');
+                messageDiv.innerHTML = '<div class="error">❌ Usuario o contraseña incorrectos</div>';
             }
         }
 
-        function doLogout() {
-            console.log('Cerrando sesión...');
-            
-            currentUser = null;
-            sessionStorage.removeItem('currentUser');
-            
-            // Mostrar login
-            document.getElementById('mainContainer').classList.add('hidden');
-            document.getElementById('loginContainer').classList.remove('hidden');
-            
-            // Limpiar formularios
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            
-            console.log('✅ Sesión cerrada');
-        }
-
-        function showMainApp() {
-            console.log('Mostrando aplicación principal...');
-            
-            // Ocultar login, mostrar app
-            document.getElementById('loginContainer').classList.add('hidden');
-            document.getElementById('mainContainer').classList.remove('hidden');
-            
-            // Actualizar info de usuario
-            document.getElementById('currentUser').textContent = currentUser.name;
-            document.getElementById('currentRole').textContent = currentUser.role;
-            
-            // Configurar permisos
-            setupPermissions();
-            
-            // Conectar con Supabase
-            console.log('🔗 Conectando con Supabase...');
-            
-            // Cargar datos desde Supabase
-            loadStats();
-            loadHistory();
-            
-            console.log('✅ Aplicación cargada para:', currentUser.role);
-        }
-
-        function setupPermissions() {
-            const isAdmin = currentUser.role === 'Administrador';
-            
-            // Panel de administración
-            const adminPanel = document.getElementById('adminPanel');
-            if (isAdmin) {
-                adminPanel.classList.remove('hidden');
-                loadCounters();
-            } else {
-                adminPanel.classList.add('hidden');
-            }
-            
-            // Columna de acciones en historial
-            const actionsHeader = document.getElementById('actionsHeader');
-            if (!isAdmin) {
-                actionsHeader.style.display = 'none';
-            } else {
-                actionsHeader.style.display = 'table-cell';
-            }
-            
-            console.log('✅ Permisos configurados para:', currentUser.role);
-        }
-
-        function showLoginError(message) {
-            const alert = document.getElementById('loginAlert');
-            alert.textContent = message;
-            alert.style.display = 'block';
-            
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 3000);
-        }
-
-        function checkSession() {
-            console.log('Verificando sesión...');
+        // Test de conexión Supabase
+        async function testSupabaseConnection() {
+            console.log('🔌 Probando conexión Supabase...');
+            const messageDiv = document.getElementById('testMessage');
             
             try {
-                const savedUser = sessionStorage.getItem('currentUser');
-                if (savedUser) {
-                    currentUser = JSON.parse(savedUser);
-                    console.log('✅ Sesión encontrada:', currentUser.username);
-                    showMainApp();
-                    return true;
+                messageDiv.innerHTML = '<div>🔄 Probando conexión...</div>';
+                
+                const { data, error } = await supabaseClient
+                    .from('documents')
+                    .select('count', { count: 'exact', head: true });
+                
+                if (error) {
+                    throw error;
                 }
-            } catch (e) {
-                console.error('Error leyendo sesión:', e);
-                sessionStorage.removeItem('currentUser');
+                
+                console.log('✅ Conexión Supabase exitosa');
+                messageDiv.innerHTML = '<div class="success">✅ Conexión Supabase exitosa</div>';
+                document.getElementById('dbStatus').textContent = '✅ Conectado';
+                document.getElementById('dbStatus').style.color = 'green';
+                
+            } catch (error) {
+                console.error('❌ Error conexión Supabase:', error);
+                messageDiv.innerHTML = '<div class="error">❌ Error: ' + error.message + '</div>';
+                document.getElementById('dbStatus').textContent = '❌ Error';
+                document.getElementById('dbStatus').style.color = 'red';
             }
-            
-            console.log('ℹ️ No hay sesión activa');
-            return false;
         }
 
-        // ================================
-        // FUNCIONES DE SUPABASE CON NUMERACIÓN CONSECUTIVA
-        // ================================
+        // Test de creación de documento
+        async function testDocumentCreation() {
+            console.log('📄 Probando creación de documento...');
+            const messageDiv = document.getElementById('testMessage');
+            
+            try {
+                messageDiv.innerHTML = '<div>🔄 Creando documento de prueba...</div>';
+                
+                const testDoc = {
+                    document_number: 'TEST-001-2025',
+                    document_type: 'oficio',
+                    department: 'GGE',
+                    subject: 'Documento de prueba',
+                    recipient: 'Test',
+                    content: 'Contenido de prueba',
+                    created_by: currentUser.username,
+                    created_by_role: currentUser.role,
+                    status: 'Activo'
+                };
+                
+                const { data, error } = await supabaseClient
+                    .from('documents')
+                    .insert(testDoc)
+                    .select();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                console.log('✅ Documento creado:', data);
+                messageDiv.innerHTML = '<div class="success">✅ Documento de prueba creado exitosamente</div>';
+                
+            } catch (error) {
+                console.error('❌ Error creando documento:', error);
+                messageDiv.innerHTML = '<div class="error">❌ Error creando documento: ' + error.message + '</div>';
+            }
+        }
 
-        async function generateDocument() {
+        // Mostrar app principal
+        function showMainApp() {
+            document.getElementById('testSection').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('mainUserName').textContent = currentUser.name;
+            loadDocuments();
+        }
+
+        // Crear documento real
+        async function createDocument() {
+            console.log('📄 Creando documento real...');
+            const messageDiv = document.getElementById('appMessage');
+            
             try {
                 const subject = document.getElementById('subject').value.trim();
                 if (!subject) {
-                    showAlert('Por favor ingrese el asunto del documento', 'error');
+                    messageDiv.innerHTML = '<div class="error">❌ Ingrese el asunto</div>';
                     return;
                 }
-
-                setButtonLoading('generateBtn', true);
                 
-                const type = document.getElementById('documentType').value;
+                messageDiv.innerHTML = '<div>🔄 Creando documento...</div>';
+                
+                const type = document.getElementById('docType').value;
                 const department = document.getElementById('department').value;
                 const currentYear = new Date().getFullYear();
-
-                console.log('📋 Generando documento con numeración consecutiva...');
-
-                // 1. Obtener próximo número consecutivo usando la función SQL
-                const { data: nextNumber, error: rpcError } = await supabaseClient.rpc('get_next_consecutive_number', {
-                    doc_type: type,
-                    dept: department,
-                    doc_year: currentYear
-                });
-
-                if (rpcError) {
-                    console.error('Error obteniendo número consecutivo:', rpcError);
-                    throw new Error('Error obteniendo número consecutivo: ' + rpcError.message);
-                }
-
-                console.log('🔢 Próximo número consecutivo:', nextNumber);
-
-                // 2. Generar número de documento completo
-                const prefixes = {
-                    'oficio': 'Oficio No.',
-                    'memorando': 'Memorando No.',
-                    'orden_compra': 'Orden de Compra No.',
-                    'proforma': 'Proforma No.',
-                    'acta_entrega_externa': 'Acta de Entrega-Recepción Externa No.',
-                    'acta_entrega_interna': 'Acta de Entrega-Recepción Interna No.',
-                    'acta_reunion': 'Acta de Reunión No.'
-                };
-
-                const prefix = prefixes[type] || 'Documento No.';
-                const documentNumber = `${prefix} ${nextNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
-
-                console.log('📄 Número de documento generado:', documentNumber);
-
-                // 3. Insertar documento en la base de datos
-                const { data, error } = await supabaseClient
+                
+                // Obtener próximo número (simplificado)
+                const { data: existingDocs } = await supabaseClient
                     .from('documents')
-                    .insert({
-                        document_type: type,
-                        department: department,
-                        subject: subject,
-                        recipient: document.getElementById('recipient').value || null,
-                        content: document.getElementById('content').value || null,
-                        document_number: documentNumber,
-                        created_by: currentUser.username,
-                        created_by_role: currentUser.role,
-                        status: 'Activo'
-                    })
-                    .select();
-
-                if (error) {
-                    console.error('Error insertando documento:', error);
-                    throw error;
-                }
-
-                console.log('✅ Documento insertado correctamente:', data);
-
-                // 4. Actualizar interfaz
-                currentDocument = {
-                    type: type,
+                    .select('document_number')
+                    .like('document_number', `%${department}-${currentYear}%`);
+                
+                const nextNumber = (existingDocs?.length || 0) + 1;
+                const docNumber = `${type.charAt(0).toUpperCase() + type.slice(1)} No. ${nextNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
+                
+                const docData = {
+                    document_number: docNumber,
+                    document_type: type,
                     department: department,
                     subject: subject,
-                    recipient: document.getElementById('recipient').value,
-                    content: document.getElementById('content').value,
-                    number: documentNumber,
-                    date: new Date().toLocaleString('es-ES')
+                    created_by: currentUser.username,
+                    created_by_role: currentUser.role,
+                    status: 'Activo'
                 };
-
-                // Mostrar vista previa
-                document.getElementById('generatedNumber').textContent = documentNumber;
-                const htmlContent = createDocumentHTML(currentDocument);
-                document.getElementById('documentContent').innerHTML = htmlContent;
-                document.getElementById('documentPreview').style.display = 'block';
-
-                showAlert(`✅ Documento ${documentNumber} generado correctamente`, 'success');
-                updateStatus('🟢 Documento guardado en Supabase exitosamente', 'success');
                 
-                // Limpiar formulario
+                const { data, error } = await supabaseClient
+                    .from('documents')
+                    .insert(docData)
+                    .select();
+                
+                if (error) throw error;
+                
+                console.log('✅ Documento creado:', data);
+                messageDiv.innerHTML = `<div class="success">✅ Documento ${docNumber} creado exitosamente</div>`;
                 document.getElementById('subject').value = '';
-                document.getElementById('recipient').value = '';
-                document.getElementById('content').value = '';
-
-                // Actualizar datos
-                loadStats();
-                loadHistory();
-                if (currentUser.role === 'Administrador') {
-                    loadCounters();
-                }
-
-            } catch (error) {
-                console.error('❌ Error generando documento:', error);
-                showAlert('Error generando documento: ' + error.message, 'error');
-                updateStatus('🔴 Error conectando con Supabase', 'error');
-            } finally {
-                setButtonLoading('generateBtn', false);
-            }
-        }
-
-        async function previewNext() {
-            try {
-                setButtonLoading('previewBtn', true);
+                loadDocuments();
                 
-                const type = document.getElementById('documentType').value;
-                const department = document.getElementById('department').value;
-                const currentYear = new Date().getFullYear();
-
-                console.log('👁️ Obteniendo vista previa del próximo número...');
-
-                // Obtener próximo número consecutivo
-                const { data: nextNumber, error } = await supabaseClient.rpc('get_next_consecutive_number', {
-                    doc_type: type,
-                    dept: department,
-                    doc_year: currentYear
-                });
-
-                if (error) {
-                    console.error('Error obteniendo próximo número:', error);
-                    throw error;
-                }
-
-                const prefixes = {
-                    'oficio': 'Oficio No.',
-                    'memorando': 'Memorando No.',
-                    'orden_compra': 'Orden de Compra No.',
-                    'proforma': 'Proforma No.',
-                    'acta_entrega_externa': 'Acta de Entrega-Recepción Externa No.',
-                    'acta_entrega_interna': 'Acta de Entrega-Recepción Interna No.',
-                    'acta_reunion': 'Acta de Reunión No.'
-                };
-
-                const prefix = prefixes[type] || 'Documento No.';
-                const documentNumber = `${prefix} ${nextNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
-
-                showAlert(`Próximo número: ${documentNumber}`, 'success');
-                updateStatus('🟢 Sistema conectado - Supabase activo', 'success');
-
             } catch (error) {
-                console.error('❌ Error obteniendo próximo número:', error);
-                showAlert('Error obteniendo próximo número', 'error');
-                updateStatus('🔴 Error conectando con Supabase', 'error');
-            } finally {
-                setButtonLoading('previewBtn', false);
+                console.error('❌ Error creando documento:', error);
+                messageDiv.innerHTML = '<div class="error">❌ Error: ' + error.message + '</div>';
             }
         }
 
-        async function loadStats() {
+        // Cargar documentos
+        async function loadDocuments() {
+            console.log('📚 Cargando documentos...');
+            const listDiv = document.getElementById('documentsList');
+            
             try {
-                console.log('📊 Cargando estadísticas desde Supabase...');
-
-                // Probar conexión primero
-                const { data: testData, error: testError } = await supabaseClient
-                    .from('documents')
-                    .select('id', { count: 'exact', head: true });
-
-                if (testError) {
-                    console.error('Error de conexión:', testError);
-                    throw new Error('Error de conexión: ' + testError.message);
-                }
-
-                // Total de documentos
-                const totalDocuments = testData ? 0 : 0; // El count está en el metadata
-                const { count: realTotal } = await supabaseClient
-                    .from('documents')
-                    .select('*', { count: 'exact', head: true });
-
-                // Documentos de hoy
-                const today = new Date().toISOString().split('T')[0];
-                const { count: todayDocuments } = await supabaseClient
-                    .from('documents')
-                    .select('*', { count: 'exact', head: true })
-                    .gte('created_date', today);
-
-                // Departamentos activos
-                const { data: departments } = await supabaseClient
-                    .from('documents')
-                    .select('department');
-
-                const activeDepartments = departments ? new Set(departments.map(doc => doc.department)).size : 0;
-
-                // Actualizar interfaz
-                document.getElementById('totalDocuments').textContent = realTotal || 0;
-                document.getElementById('todayDocuments').textContent = todayDocuments || 0;
-                document.getElementById('activeDepartments').textContent = activeDepartments || 0;
-
--- Función para obtener próximo número consecutivo (ACTUALIZADA)
-CREATE OR REPLACE FUNCTION get_next_consecutive_number(
-    doc_type text,
-    dept text,
-    doc_year integer
-) RETURNS integer AS $
-BEGIN
-    RETURN COALESCE(
-        (SELECT MAX(CAST(substring(document_number from '(\d+)-') AS integer)) + 1
-         FROM documents 
-         WHERE document_type = doc_type 
-         AND department = dept 
-         AND EXTRACT(year FROM created_date) = doc_year), 
-        1
-    );
-END;
-$ LANGUAGE plpgsql;
-
--- Función para reorganizar números (ACTUALIZADA)
-CREATE OR REPLACE FUNCTION reorganize_document_numbers(
-    doc_type text,
-    dept text,
-    doc_year integer
-) RETURNS void AS $
-DECLARE
-    doc_record RECORD;
-    new_number integer := 1;
-    prefix_text text;
-BEGIN
-    CASE doc_type
-        WHEN 'oficio' THEN prefix_text := 'Oficio No.';
-        WHEN 'memorando' THEN prefix_text := 'Memorando No.';
-        WHEN 'orden_compra' THEN prefix_text := 'Orden de Compra No.';
-        WHEN 'proforma' THEN prefix_text := 'Proforma No.';
-        WHEN 'acta_entrega_externa' THEN prefix_text := 'Acta de Entrega-Recepción Externa No.';
-        WHEN 'acta_entrega_interna' THEN prefix_text := 'Acta de Entrega-Recepción Interna No.';
-        WHEN 'acta_reunion' THEN prefix_text := 'Acta de Reunión No.';
-        ELSE prefix_text := 'Documento No.';
-    END CASE;
-    
-    FOR doc_record IN 
-        SELECT id FROM documents 
-        WHERE document_type = doc_type 
-        AND department = dept 
-        AND EXTRACT(year FROM created_date) = doc_year
-        ORDER BY created_date ASC
-    LOOP
-        UPDATE documents 
-        SET document_number = prefix_text || ' ' || 
-            LPAD(new_number::text, 3, '0') || '-' || dept || '-' || doc_year
-        WHERE id = doc_record.id;
-        
-        new_number := new_number + 1;
-    END LOOP;
-END;
-$ LANGUAGE plpgsql;
-
-            } catch (error) {
-                console.error('❌ Error cargando estadísticas:', error);
-                document.getElementById('totalDocuments').textContent = 'Error';
-                document.getElementById('todayDocuments').textContent = 'Error';
-                document.getElementById('activeDepartments').textContent = 'Error';
-                updateStatus('🔴 Error: ' + error.message, 'error');
+                listDiv.innerHTML = '🔄 Cargando documentos...';
                 
-                // Mostrar error específico al usuario
-                showAlert('Error conectando con Supabase: ' + error.message, 'error');
-            }
-        }
-
-        async function loadHistory() {
-            try {
-                console.log('📚 Cargando historial desde Supabase...');
-
                 const { data: documents, error } = await supabaseClient
                     .from('documents')
                     .select('*')
-                    .order('created_date', { ascending: false });
-
+                    .order('created_date', { ascending: false })
+                    .limit(10);
+                
                 if (error) throw error;
-
-                allDocuments = documents || [];
-                updateHistoryTable(allDocuments);
-                updateHistoryInfo(allDocuments.length);
-
-                console.log('✅ Historial cargado desde Supabase:', allDocuments.length, 'documentos');
-                updateStatus('🟢 Historial actualizado desde Supabase', 'success');
-
-            } catch (error) {
-                console.error('❌ Error cargando historial:', error);
-                const tbody = document.getElementById('historyTable');
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: #e74c3c; padding: 40px;">
-                            <div style="font-size: 1.2em; margin-bottom: 10px;">❌</div>
-                            <div>Error cargando documentos de Supabase</div>
-                            <div style="font-size: 0.9em; margin-top: 5px;">
-                                Verifique la conexión a la base de datos
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                updateStatus('🔴 Error cargando historial de Supabase', 'error');
-            }
-        }
-
-        async function loadCounters() {
-            if (!currentUser || currentUser.role !== 'Administrador') {
-                return;
-            }
-            
-            try {
-                console.log('📊 Cargando contadores desde Supabase...');
-
-                // Obtener todos los documentos agrupados por tipo y departamento
-                const { data: documents, error } = await supabaseClient
-                    .from('documents')
-                    .select('document_type, department, created_date');
-
-                if (error) throw error;
-
-                // Agrupar por tipo, departamento y año
-                const groups = {};
-                documents.forEach(doc => {
-                    const year = new Date(doc.created_date).getFullYear();
-                    const key = `${doc.document_type}_${doc.department}_${year}`;
-                    
-                    if (!groups[key]) {
-                        groups[key] = {
-                            document_type: doc.document_type,
-                            department: doc.department,
-                            year: year,
-                            counter: 0
-                        };
-                    }
-                    groups[key].counter++;
-                });
-
-                const counters = Object.values(groups);
-                updateCountersDisplay(counters);
-
-                console.log('✅ Contadores cargados desde Supabase:', counters.length);
-                updateStatus('🟢 Contadores actualizados desde Supabase', 'success');
-
-            } catch (error) {
-                console.error('❌ Error cargando contadores:', error);
-                document.getElementById('countersStatus').innerHTML = 
-                    '<div style="color: #e74c3c;">Error cargando contadores de Supabase</div>';
-                updateStatus('🔴 Error cargando contadores de Supabase', 'error');
-            }
-        }
-
-        async function deleteDocument(documentId, documentNumber) {
-            if (!currentUser || currentUser.role !== 'Administrador') {
-                showAlert('No tiene permisos para esta acción', 'error');
-                return;
-            }
-            
-            const confirmation = confirm(
-                `¿Está seguro de eliminar el documento "${documentNumber}"?\n\n` +
-                'Esta acción eliminará el documento y reorganizará automáticamente la numeración para eliminar huecos.'
-            );
-            
-            if (!confirmation) return;
-            
-            try {
-                console.log('🗑️ Eliminando documento con reorganización:', documentId, documentNumber);
-
-                // 1. Obtener información del documento antes de eliminarlo
-                const { data: docData, error: selectError } = await supabaseClient
-                    .from('documents')
-                    .select('document_type, department, created_date, document_number')
-                    .eq('id', documentId)
-                    .single();
-
-                if (selectError || !docData) {
-                    throw new Error('Documento no encontrado');
-                }
-
-                console.log('📄 Documento a eliminar:', docData);
-
-                // 2. Eliminar el documento
-                const { error: deleteError } = await supabaseClient
-                    .from('documents')
-                    .delete()
-                    .eq('id', documentId);
-
-                if (deleteError) {
-                    console.error('Error eliminando documento:', deleteError);
-                    throw deleteError;
-                }
-
-                console.log('✅ Documento eliminado correctamente');
-
-                // 3. Reorganizar numeración usando la función SQL
-                const year = new Date(docData.created_date).getFullYear();
                 
-                const { error: reorganizeError } = await supabaseClient.rpc('reorganize_document_numbers', {
-                    doc_type: docData.document_type,
-                    dept: docData.department,
-                    doc_year: year
-                });
-
-                if (reorganizeError) {
-                    console.error('Error reorganizando números:', reorganizeError);
-                    throw reorganizeError;
-                }
-
-                console.log('✅ Numeración reorganizada correctamente');
-
-                showAlert(`✅ Documento ${documentNumber} eliminado y numeración reorganizada`, 'success');
-                updateStatus('🟢 Documento eliminado y numeración reorganizada en Supabase', 'success');
-                
-                // Actualizar interfaz
-                loadStats();
-                loadHistory();
-                loadCounters();
-
-            } catch (error) {
-                console.error('❌ Error eliminando documento:', error);
-                showAlert('Error eliminando documento: ' + error.message, 'error');
-                updateStatus('🔴 Error eliminando documento de Supabase', 'error');
-            }
-        }
-
-        async function deleteAllDocuments() {
-            if (!currentUser || currentUser.role !== 'Administrador') {
-                showAlert('No tiene permisos para esta acción', 'error');
-                return;
-            }
-            
-            try {
-                console.log('🗑️ Eliminando todos los documentos de Supabase...');
-
-                const { error } = await supabaseClient
-                    .from('documents')
-                    .delete()
-                    .neq('id', 0); // Eliminar todos (neq 0 elimina todos los registros)
-
-                if (error) throw error;
-
-                showAlert('✅ Todos los documentos han sido eliminados', 'success');
-                updateStatus('🟢 Sistema completamente reiniciado en Supabase', 'success');
-                
-                // Actualizar interfaz
-                loadStats();
-                loadHistory();
-                loadCounters();
-                clearPreview();
-                
-                // Limpiar filtros
-                document.getElementById('filterType').value = '';
-                document.getElementById('filterDepartment').value = '';
-
-            } catch (error) {
-                console.error('❌ Error eliminando documentos:', error);
-                showAlert('Error eliminando documentos: ' + error.message, 'error');
-                updateStatus('🔴 Error eliminando documentos de Supabase', 'error');
-            }
-        }
-
-        async function resetCounters() {
-            if (!currentUser || currentUser.role !== 'Administrador') {
-                showAlert('No tiene permisos para esta acción', 'error');
-                return;
-            }
-            
-            const department = document.getElementById('resetDepartment').value;
-            const type = document.getElementById('resetType').value;
-            
-            if (!department && !type) {
-                const confirmation = confirm(
-                    '¿Está seguro de reiniciar TODOS los contadores a 0?\n\n' +
-                    'Esta acción no se puede deshacer.'
-                );
-                
-                if (!confirmation) return;
-                
-                // Reiniciar todo eliminando todos los documentos
-                await deleteAllDocuments();
-                return;
-            } else {
-                if (!department || !type) {
-                    showAlert('Para reiniciar un contador específico, seleccione tanto departamento como tipo', 'error');
+                if (!documents || documents.length === 0) {
+                    listDiv.innerHTML = 'No hay documentos';
                     return;
                 }
                 
-                const confirmation = confirm(
-                    `¿Reiniciar contador para ${department} - ${type}?\n\n` +
-                    'Esto eliminará todos los documentos de este tipo y departamento.'
-                );
+                let html = '<ul style="margin: 0; padding-left: 20px;">';
+                documents.forEach(doc => {
+                    const date = new Date(doc.created_date).toLocaleDateString('es-ES');
+                    html += `<li><strong>${doc.document_number}</strong> - ${doc.subject} (${date})</li>`;
+                });
+                html += '</ul>';
                 
-                if (!confirmation) return;
-            }
-            
-            try {
-                console.log('🔄 Reiniciando contadores específicos en Supabase...');
+                listDiv.innerHTML = html;
+                console.log('✅ Documentos cargados:', documents.length);
                 
-                // Eliminar documentos específicos
-                const { error } = await supabaseClient
-                    .from('documents')
-                    .delete()
-                    .eq('document_type', type)
-                    .eq('department', department);
-
-                if (error) throw error;
-
-                showAlert(`✅ Contador para ${department} - ${type} reiniciado`, 'success');
-                updateStatus('🟢 Contador específico reiniciado en Supabase', 'success');
-                
-                loadCounters();
-                loadStats();
-                loadHistory();
-
             } catch (error) {
-                console.error('❌ Error reiniciando contadores:', error);
-                showAlert('Error reiniciando contadores: ' + error.message, 'error');
-                updateStatus('🔴 Error reiniciando contadores en Supabase', 'error');
+                console.error('❌ Error cargando documentos:', error);
+                listDiv.innerHTML = '❌ Error cargando documentos: ' + error.message;
             }
         }
 
-        function refreshData() {
-            console.log('🔄 Actualizando datos desde Supabase...');
-            loadStats();
-            loadHistory();
-            if (currentUser && currentUser.role === 'Administrador') {
-                loadCounters();
-                console.log('👨‍💼 Contadores de admin actualizados desde Supabase');
-            }
-            showAlert('Datos actualizados desde Supabase correctamente', 'success');
-            updateStatus('🟢 Datos sincronizados con Supabase', 'success');
+        // Logout
+        function doLogout() {
+            console.log('🚪 Cerrando sesión...');
+            currentUser = null;
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('loginMessage').innerHTML = '';
         }
 
-        // ================================
-        // FUNCIONES DE ADMINISTRACIÓN
-        // ================================
-
-        function confirmDeleteAll() {
-            if (!currentUser || currentUser.role !== 'Administrador') {
-                showAlert('No tiene permisos para esta acción', 'error');
-                return;
+        // Permitir Enter en campos de login
+        document.addEventListener('DOMContentLoaded', function() {
+            const usernameField = document.getElementById('username');
+            const passwordField = document.getElementById('password');
+            
+            if (usernameField) {
+                usernameField.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        passwordField.focus();
+                    }
+                });
             }
             
-            const confirmation = prompt(
-                '⚠️ ADVERTENCIA: Esta acción eliminará TODOS los documentos y reiniciará los contadores.\n\n' +
-                'Para confirmar, escriba exactamente: ELIMINAR TODO'
-            );
-            
-            if (confirmation === 'ELIMINAR TODO') {
-                deleteAllDocuments();
-            } else if (confirmation !== null) {
-                showAlert('Confirmación incorrecta. Operación cancelada.', 'error');
+            if (passwordField) {
+                passwordField.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        testLogin();
+                    }
+                });
             }
-        }
-
-        function updateCountersDisplay(counters) {
-            const container = document.getElementById('countersStatus');
-            
-            if (counters.length === 0) {
-                container.innerHTML = '<div style="color: #7f8c8d;">No hay contadores creados</div>';
-                return;
-            }
-            
-            let html = '';
-            counters.forEach(counter => {
-                const className = counter.counter > 0 ? 'has-documents' : 'empty';
-                
-                let typeName;
-                if (documentTypeMapping[counter.document_type]) {
-                    typeName = documentTypeMapping[counter.document_type].name;
-                } else {
-                    typeName = counter.document_type.replace(/_/g, ' ')
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ');
-                }
-                
-                html += `
-                    <div class="admin-counter ${className}">
-                        <strong>${counter.department} - ${typeName}</strong>
-                        <span style="float: right;">
-                            Año: ${counter.year} | Contador: <strong>${counter.counter}</strong>
-                        </span>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function updateHistoryTable(documents) {
-            const tbody = document.getElementById('historyTable');
-            const isAdmin = currentUser && currentUser.role === 'Administrador';
-            
-            console.log('🔄 Actualizando tabla del historial con', documents.length, 'documentos');
-            
-            if (documents.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: #7f8c8d; padding: 40px;">
-                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
-                            <div>No hay documentos en el sistema</div>
-                            <div style="font-size: 0.9em; margin-top: 5px; opacity: 0.7;">
-                                Genera tu primer documento usando el formulario de arriba
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = '';
-            documents.forEach(doc => {
-                const row = tbody.insertRow();
-                const date = new Date(doc.created_date).toLocaleString('es-ES');
-                
-                let documentNumber = doc.document_number;
-                console.log('📋 Mostrando documento en historial:', documentNumber);
-                
-                let documentTypeName;
-                if (documentTypeMapping[doc.document_type]) {
-                    documentTypeName = documentTypeMapping[doc.document_type].name;
-                } else {
-                    documentTypeName = doc.document_type.replace(/_/g, ' ')
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ');
-                }
-                
-                const actionsCell = isAdmin ? 
-                    `<td>
-                        <button class="delete-btn" onclick="deleteDocument(${doc.id}, '${doc.document_number}')">
-                            🗑️ Eliminar
-                        </button>
-                    </td>` : '<td>-</td>';
-                
-                row.innerHTML = `
-                    <td><strong>${documentNumber}</strong></td>
-                    <td>${documentTypeName}</td>
-                    <td>${doc.department}</td>
-                    <td>${doc.subject}</td>
-                    <td>${date}</td>
-                    <td><span class="status-indicator status-active"></span>${doc.status || 'Activo'}</td>
-                    ${actionsCell}
-                `;
-            });
-            
-            console.log('✅ Tabla del historial actualizada');
-        }
-
-        // ================================
-        // FUNCIONES DE FILTRADO
-        // ================================
-
-        function filterHistory() {
-            const typeFilter = document.getElementById('filterType').value;
-            const departmentFilter = document.getElementById('filterDepartment').value;
-            
-            let filteredDocuments = allDocuments;
-            
-            if (typeFilter) {
-                filteredDocuments = filteredDocuments.filter(doc => 
-                    doc.document_type === typeFilter
-                );
-            }
-            
-            if (departmentFilter) {
-                filteredDocuments = filteredDocuments.filter(doc => 
-                    doc.department === departmentFilter
-                );
-            }
-            
-            updateHistoryTable(filteredDocuments);
-            updateHistoryInfo(filteredDocuments.length);
-            
-            const activeFilters = [];
-            if (typeFilter) {
-                const typeName = documentTypeMapping[typeFilter]?.name || typeFilter.replace(/_/g, ' ')
-                    .split(' ')
-                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ');
-                activeFilters.push(`Tipo: ${typeName}`);
-            }
-            if (departmentFilter) {
-                activeFilters.push(`Departamento: ${departmentFilter}`);
-            }
-            
-            if (activeFilters.length > 0) {
-                showAlert(`Filtros aplicados: ${activeFilters.join(', ')}`, 'success');
-            }
-        }
-
-        function clearFilters() {
-            document.getElementById('filterType').value = '';
-            document.getElementById('filterDepartment').value = '';
-            updateHistoryTable(allDocuments);
-            updateHistoryInfo(allDocuments.length);
-            showAlert('Filtros limpiados - Mostrando todos los documentos', 'success');
-        }
-
-        function updateHistoryInfo(count) {
-            const historyInfo = document.getElementById('historyInfo');
-            const historyCount = document.getElementById('historyCount');
-            
-            historyCount.textContent = count;
-            historyInfo.style.display = 'block';
-            
-            // Cambiar color según la cantidad
-            if (count === 0) {
-                historyInfo.style.background = '#f8d7da';
-                historyInfo.style.color = '#721c24';
-            } else {
-                historyInfo.style.background = '#d4edda';
-                historyInfo.style.color = '#155724';
-            }
-        }
-
-        // ================================
-        // FUNCIONES DE DOCUMENTOS
-        // ================================
-
-        function createDocumentHTML(doc) {
-            console.log('🎨 Creando HTML para documento:', doc);
-            
-            const today = new Date().toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-
-            let documentNumber = doc.number;
-            console.log('🔢 Número final a mostrar:', documentNumber);
-
-            // Determinar el contenido del documento
-            let documentContent;
-            if (doc.content && doc.content.trim() !== '') {
-                console.log('📄 Usando contenido personalizado');
-                documentContent = doc.content;
-            } else {
-                console.log('📋 Usando contenido por defecto para tipo:', doc.type);
-                documentContent = getDefaultContent(doc.type);
-            }
-
-            const finalHTML = `
-                <div style="text-align: right; margin-bottom: 30px;">
-                    <strong>Quito, ${today}</strong>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <strong>${documentNumber}</strong>
-                </div>
-                
-                ${doc.recipient ? `<div style="margin-bottom: 20px;"><strong>Para:</strong> ${doc.recipient}</div>` : ''}
-                
-                <div style="margin-bottom: 20px;">
-                    <strong>Asunto:</strong> ${doc.subject}
-                </div>
-                
-                <div style="margin-bottom: 30px; text-align: justify; line-height: 1.6;">
-                    ${documentContent}
-                </div>
-                
-                <div style="margin-top: 80px;">
-                    <div style="border-top: 1px solid #333; width: 300px; text-align: center; margin: 0 auto;">
-                        <br>Firma y Sello
-                    </div>
-                </div>
-            `;
-
-            return finalHTML;
-        }
-
-        function getDefaultContent(documentType) {
-            console.log('🔍 Generando contenido para tipo:', documentType);
-            
-            const defaultContent = {
-                'oficio': 'Estimado(a) señor(a),<br><br>Por medio del presente documento...<br><br>Atentamente,',
-                'memorando': 'Para: [Destinatario]<br>De: [Remitente]<br><br>Por medio del presente memorando...<br><br>Cordialmente,',
-                'orden_compra': 'Estimado proveedor,<br><br>Por medio de la presente, solicitamos cotización para los siguientes productos/servicios:<br><br>[Detalle de productos/servicios]<br><br>Favor enviar cotización a la brevedad posible.<br><br>Atentamente,',
-                'proforma': 'Estimado cliente,<br><br>De acuerdo a su solicitud, adjuntamos la proforma correspondiente:<br><br>[Detalle de productos/servicios]<br><br>La presente proforma tiene una validez de 30 días.<br><br>Cordialmente,',
-                'acta_entrega_externa': '<strong>ACTA DE ENTREGA-RECEPCIÓN EXTERNA</strong><br><br>En la ciudad de Quito, siendo las <strong>[hora]</strong> del día <strong>[fecha]</strong>, se procede a la entrega-recepción externa de:<br><br><strong>DETALLE DE LO ENTREGADO/RECIBIDO:</strong><br>[Describir detalladamente los elementos, documentos o bienes objeto de entrega-recepción]<br><br><strong>ESTADO:</strong> ☐ Conforme &nbsp;&nbsp;&nbsp; ☐ No conforme<br><br><strong>OBSERVACIONES:</strong><br>[Detallar cualquier observación relevante sobre el estado, condiciones o particularidades]<br><br><strong>FIRMAS:</strong><br><br>ENTREGA: _____________________<br>Nombre: [Nombre completo]<br>Cargo: [Cargo]<br><br>RECIBE: _____________________<br>Nombre: [Nombre completo]<br>Cargo: [Cargo]<br><br><strong>EMPRESA/ENTIDAD EXTERNA:</strong><br>Nombre: _____________________<br>RUC: _____________________<br>Representante: _____________________',
-                'acta_entrega_interna': '<strong>ACTA DE ENTREGA-RECEPCIÓN INTERNA</strong><br><br>En la ciudad de Quito, siendo las <strong>[hora]</strong> del día <strong>[fecha]</strong>, se procede a la entrega-recepción interna de:<br><br><strong>DETALLE DE LO ENTREGADO/RECIBIDO:</strong><br>[Describir detalladamente los elementos, documentos o bienes objeto de entrega-recepción]<br><br><strong>ESTADO:</strong> ☐ Conforme &nbsp;&nbsp;&nbsp; ☐ No conforme<br><br><strong>OBSERVACIONES:</strong><br>[Detallar cualquier observación relevante sobre el estado, condiciones o particularidades]<br><br><strong>FIRMAS:</strong><br><br>ENTREGA: _____________________<br>Nombre: [Nombre completo]<br>Departamento: <strong>[Departamento que entrega]</strong><br>Cargo: [Cargo]<br><br>RECIBE: _____________________<br>Nombre: [Nombre completo]<br>Departamento: <strong>[Departamento que recibe]</strong><br>Cargo: [Cargo]',
-                'acta_reunion': '<strong>ACTA DE REUNIÓN</strong><br><br><strong>Fecha:</strong> [fecha]<br><strong>Hora de inicio:</strong> [hora inicio]<br><strong>Hora de finalización:</strong> [hora fin]<br><strong>Lugar:</strong> [lugar de reunión]<br><br><strong>PARTICIPANTES:</strong><br>[Lista de participantes con nombres y cargos]<br><br><strong>TEMAS TRATADOS:</strong><br>1. [Tema 1]<br>2. [Tema 2]<br>3. [Tema 3]<br><br><strong>ACUERDOS Y COMPROMISOS:</strong><br>1. [Acuerdo 1 - Responsable - Fecha límite]<br>2. [Acuerdo 2 - Responsable - Fecha límite]<br><br><strong>PRÓXIMA REUNIÓN:</strong><br>Fecha: [fecha próxima reunión]<br>Hora: [hora]<br>Lugar: [lugar]<br><br>Levanta el acta: _____________________'
-            };
-            
-            const content = defaultContent[documentType] || 'Contenido del documento...';
-            console.log('✅ Contenido generado para', documentType);
-            
-            return content;
-        }
-
-        function downloadWord() {
-            if (!currentDocument) return;
-
-            const docContent = `
-SISTEMA DE GESTIÓN DOCUMENTAL - SINTEL
-
-${currentDocument.number}
-
-Quito, ${new Date().toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long', 
-    day: 'numeric'
-})}
-
-${currentDocument.recipient ? `Para: ${currentDocument.recipient}\n\n` : ''}
-
-Asunto: ${currentDocument.subject}
-
-${currentDocument.content || getDefaultContentPlain(currentDocument.type)}
-
-
-
-_______________________
-Firma y Sello
-            `;
-
-            const blob = new Blob([docContent], { type: 'application/msword' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${currentDocument.number.replace(/[^a-zA-Z0-9]/g, '_')}.doc`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function getDefaultContentPlain(documentType) {
-            console.log('🔍 Generando contenido plano para descarga:', documentType);
-            
-            const defaultContent = {
-                'oficio': 'Estimado(a) señor(a),\n\nPor medio del presente documento...\n\nAtentamente,',
-                'memorando': 'Para: [Destinatario]\nDe: [Remitente]\n\nPor medio del presente memorando...\n\nCordialmente,',
-                'orden_compra': 'Estimado proveedor,\n\nPor medio de la presente, solicitamos cotización para los siguientes productos/servicios:\n\n[Detalle de productos/servicios]\n\nFavor enviar cotización a la brevedad posible.\n\nAtentamente,',
-                'proforma': 'Estimado cliente,\n\nDe acuerdo a su solicitud, adjuntamos la proforma correspondiente:\n\n[Detalle de productos/servicios]\n\nLa presente proforma tiene una validez de 30 días.\n\nCordialmente,',
-                'acta_entrega_externa': 'ACTA DE ENTREGA-RECEPCIÓN EXTERNA\n\nEn la ciudad de Quito, siendo las [hora] del día [fecha], se procede a la entrega-recepción externa de:\n\nDETALLE DE LO ENTREGADO/RECIBIDO:\n[Describir detalladamente los elementos, documentos o bienes objeto de entrega-recepción]\n\nESTADO: ☐ Conforme     ☐ No conforme\n\nOBSERVACIONES:\n[Detallar cualquier observación relevante sobre el estado, condiciones o particularidades]\n\nFIRMAS:\n\nENTREGA: _____________________\nNombre: [Nombre completo]\nCargo: [Cargo]\n\nRECIBE: _____________________\nNombre: [Nombre completo]\nCargo: [Cargo]\n\nEMPRESA/ENTIDAD EXTERNA:\nNombre: _____________________\nRUC: _____________________\nRepresentante: _____________________',
-                'acta_entrega_interna': 'ACTA DE ENTREGA-RECEPCIÓN INTERNA\n\nEn la ciudad de Quito, siendo las [hora] del día [fecha], se procede a la entrega-recepción interna de:\n\nDETALLE DE LO ENTREGADO/RECIBIDO:\n[Describir detalladamente los elementos, documentos o bienes objeto de entrega-recepción]\n\nESTADO: ☐ Conforme     ☐ No conforme\n\nOBSERVACIONES:\n[Detallar cualquier observación relevante sobre el estado, condiciones o particularidades]\n\nFIRMAS:\n\nENTREGA: _____________________\nNombre: [Nombre completo]\nDepartamento: [Departamento que entrega]\nCargo: [Cargo]\n\nRECIBE: _____________________\nNombre: [Nombre completo]\nDepartamento: [Departamento que recibe]\nCargo: [Cargo]',
-                'acta_reunion': 'ACTA DE REUNIÓN\n\nFecha: [fecha]\nHora de inicio: [hora inicio]\nHora de finalización: [hora fin]\nLugar: [lugar de reunión]\n\nPARTICIPANTES:\n[Lista de participantes con nombres y cargos]\n\nTEMAS TRATADOS:\n1. [Tema 1]\n2. [Tema 2]\n3. [Tema 3]\n\nACUERDOS Y COMPROMISOS:\n1. [Acuerdo 1 - Responsable - Fecha límite]\n2. [Acuerdo 2 - Responsable - Fecha límite]\n\nPRÓXIMA REUNIÓN:\nFecha: [fecha próxima reunión]\nHora: [hora]\nLugar: [lugar]\n\nLevanta el acta: _____________________'
-            };
-            
-            const content = defaultContent[documentType] || 'Contenido del documento...';
-            console.log('✅ Contenido plano generado para', documentType);
-            
-            return content;
-        }
-
-        function clearPreview() {
-            document.getElementById('documentPreview').style.display = 'none';
-            currentDocument = null;
-        }
-
-        // ================================
-        // FUNCIONES AUXILIARES
-        // ================================
-
-        function setButtonLoading(buttonId, loading) {
-            const button = document.getElementById(buttonId);
-            if (!button) return;
-            
-            if (loading) {
-                button.disabled = true;
-                button.innerHTML = '<div class="loading" style="width: 16px; height: 16px; display: inline-block; margin-right: 8px;"></div>Procesando...';
-            } else {
-                button.disabled = false;
-                if (buttonId === 'generateBtn') {
-                    button.innerHTML = '📄 Generar Documento';
-                } else if (buttonId === 'previewBtn') {
-                    button.innerHTML = '👁️ Ver Próximo Número';
-                }
-            }
-        }
-
-        function updateStatus(message, type) {
-            const statusBar = document.getElementById('statusBar');
-            if (!statusBar) return;
-            
-            statusBar.textContent = message;
-            if (type === 'error') {
-                statusBar.style.background = '#e74c3c';
-                statusBar.style.color = 'white';
-            } else {
-                statusBar.style.background = '#FBB040';
-                statusBar.style.color = '#092947';
-            }
-        }
-
-        function showAlert(message, type) {
-            const alertContainer = document.getElementById('alertContainer');
-            if (!alertContainer) return;
-            
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            alert.style.display = 'block';
-            
-            alertContainer.innerHTML = '';
-            alertContainer.appendChild(alert);
-            
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 5000);
-        }
-
-        // ================================
-        // INICIALIZACIÓN
-        // ================================
-
-        window.addEventListener('load', function() {
-            console.log('🚀 Iniciando SINTEL con Supabase y numeración consecutiva...');
-            
-            // Verificar si hay sesión activa
-            if (!checkSession()) {
-                // No hay sesión, mostrar login
-                document.getElementById('loginContainer').classList.remove('hidden');
-                document.getElementById('mainContainer').classList.add('hidden');
-                console.log('📋 Mostrando pantalla de login');
-            }
-            
-            // Permitir login con Enter
-            document.getElementById('username').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    document.getElementById('password').focus();
-                }
-            });
-            
-            document.getElementById('password').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    doLogin();
-                }
-            });
         });
 
-        // Actualización automática cada 30 segundos (solo si está logueado)
-        setInterval(function() {
-            if (currentUser) {
-                loadStats();
-                loadHistory();
-            }
-        }, 30000);
+        // Inicializar cuando se carga la página
+        window.addEventListener('load', function() {
+            console.log('🌐 Página cargada, inicializando...');
+            initializeApp();
+        });
 
-        console.log('✅ SINTEL con Supabase y numeración consecutiva cargado completamente');
+        console.log('✅ Script principal cargado');
     </script>
 </body>
 </html>
