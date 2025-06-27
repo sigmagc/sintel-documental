@@ -770,6 +770,8 @@ if (existingDocs && existingDocs.length > 0) {
 
            // Reemplaza esta sección en la función generateDocument():
 
+// Versión con debug extendido para identificar el problema
+
 supabaseClient
     .from('documents')
     .select('document_number')
@@ -777,35 +779,58 @@ supabaseClient
     .eq('department', department)
     .ilike('document_number', `%${department}-%-${currentYear}%`)
     .then(({ data: existingDocs, error }) => {
-        if (error) throw error;
+        console.log('=== DEBUG GENERACIÓN DOCUMENTO ===');
+        console.log('Tipo:', type);
+        console.log('Departamento:', department);
+        console.log('Año:', currentYear);
+        console.log('Consulta SQL pattern:', `%${department}-%-${currentYear}%`);
+        console.log('Error de consulta:', error);
+        console.log('Documentos encontrados:', existingDocs);
+
+        if (error) {
+            console.error('Error en consulta:', error);
+            throw error;
+        }
 
         // Extraer números existentes del formato nuevo: GGE-001-2025
         const existingNumbers = [];
         if (existingDocs && existingDocs.length > 0) {
+            console.log('Procesando documentos existentes...');
             existingDocs.forEach(doc => {
+                console.log('Procesando documento:', doc.document_number);
                 // Buscar patrón: DEPT-NNN-YEAR
-                const match = doc.document_number.match(new RegExp(`${department}-(\\d+)-${currentYear}`));
+                const pattern = new RegExp(`${department}-(\\d+)-${currentYear}`);
+                console.log('Patrón regex:', pattern);
+                const match = doc.document_number.match(pattern);
+                console.log('Match resultado:', match);
+                
                 if (match) {
                     existingNumbers.push(parseInt(match[1]));
-                    console.log(`Encontrado: ${doc.document_number} -> número ${match[1]}`);
+                    console.log(`✅ Número extraído: ${match[1]} de ${doc.document_number}`);
+                } else {
+                    console.log(`❌ No match para: ${doc.document_number}`);
                 }
             });
+        } else {
+            console.log('No hay documentos existentes para este tipo y departamento');
         }
 
-        console.log('Números existentes:', existingNumbers);
+        console.log('Números existentes extraídos:', existingNumbers);
 
         existingNumbers.sort((a, b) => a - b);
+        console.log('Números ordenados:', existingNumbers);
 
         // Encontrar el siguiente número disponible
         let nextNumber = 1;
         for (let i = 0; i < existingNumbers.length; i++) {
             if (existingNumbers[i] !== nextNumber) {
+                console.log(`Hueco encontrado en posición ${nextNumber}`);
                 break;
             }
             nextNumber++;
         }
 
-        console.log('Próximo número:', nextNumber);
+        console.log('Próximo número a asignar:', nextNumber);
 
         // Determinar prefijo según tipo
         let prefix;
@@ -822,10 +847,13 @@ supabaseClient
             default: prefix = 'Documento No.';
         }
 
+        console.log('Prefijo determinado:', prefix);
+
         // FORMATO NUEVO: Departamento-Número-Año
         const documentNumber = `${prefix} ${department}-${nextNumber.toString().padStart(3, '0')}-${currentYear}`;
         
-        console.log('Documento generado:', documentNumber);
+        console.log('Número de documento final:', documentNumber);
+        console.log('=== FIN DEBUG ===');
 
         // Crear objeto de documento
         currentDocumentData = {
@@ -840,6 +868,8 @@ supabaseClient
             status: 'Activo'
         };
 
+        console.log('currentDocumentData creado:', currentDocumentData);
+
         // Generar vista previa
         const preview = generateDocumentPreview(currentDocumentData);
         document.getElementById('documentPreview').innerHTML = preview;
@@ -849,7 +879,8 @@ supabaseClient
         updateStatus('🟢 Documento generado - Revise la vista previa', 'success');
     })
     .catch(error => {
-        console.error('❌ Error generando documento:', error);
+        console.error('❌ Error completo generando documento:', error);
+        console.error('Stack trace:', error.stack);
         showAlert('Error generando documento: ' + error.message, 'error');
         updateStatus('🔴 Error generando documento', 'error');
     });
