@@ -536,15 +536,24 @@
                     if (error) throw error;
 
                     // Extraer números existentes y encontrar el siguiente disponible
-                    const existingNumbers = [];
-                    if (existingDocs && existingDocs.length > 0) {
-                        existingDocs.forEach(doc => {
-                            const match = doc.document_number.match(/(\d+)-/);
-                            if (match) {
-                                existingNumbers.push(parseInt(match[1]));
-                            }
-                        });
-                    }
+                    // Extraer números existentes y encontrar el siguiente disponible
+const existingNumbers = [];
+if (existingDocs && existingDocs.length > 0) {
+    existingDocs.forEach(doc => {
+        // Buscar patrón para formato anterior: 001-GGE-2025
+        const oldFormatMatch = doc.document_number.match(/(\d+)-/);
+        // Buscar patrón para formato nuevo: GGE-001-2025
+        const newFormatMatch = doc.document_number.match(/-(\d+)-/);
+        
+        if (newFormatMatch) {
+            // Si encuentra el formato nuevo (GGE-001-2025)
+            existingNumbers.push(parseInt(newFormatMatch[1]));
+        } else if (oldFormatMatch) {
+            // Si encuentra el formato anterior (001-GGE-2025)
+            existingNumbers.push(parseInt(oldFormatMatch[1]));
+        }
+    });
+}
 
                     existingNumbers.sort((a, b) => a - b);
 
