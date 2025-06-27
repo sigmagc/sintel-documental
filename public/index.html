@@ -1,72 +1,4 @@
-<!-- FILTROS -->
-                        <div class="filters-row">
-                            <div class="filter-group">
-                                <label class="filter-label">Tipo de Documento</label>
-                                <select id="filterType" class="form-select" onchange="applyFilters()">
-                                    <option value="">Todos los tipos</option>
-                                    <option value="oficio">Oficio</option>
-                                    <option value="memorando">Memorando</option>
-                                    <option value="orden_compra">Orden de Compra</option>
-                                    <option value="proforma">Proforma</option>
-                                    <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
-                                    <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
-                                    <option value="acta_reunion">Acta de Reunión</option>
-                                    <option value="informe_tecnico">Informe Técnico</option>
-                                    <option value="informe_viaticos">Informe de Viáticos</option>
-                                </select>
-                            </div>
-                            
-                            <div class="filter-group">
-                                <label class="filter-label">Departamento</label>
-                                <select id="filterDepartment" class="form-select" onchange="applyFilters()">
-                                    <option value="">Todos los departamentos</option>
-                                    <option value="GGE">Gerencia General (GGE)</option>
-                                    <option value="PMO">Oficina de Proyectos (PMO)</option>
-                                    <option value="CAF">Contabilidad y Finanzas (CAF)</option>
-                                    <option value="RHU">Recursos Humanos (RHU)</option>
-                                    <option value="TIC">Tecnologías de Información (TIC)</option>
-                                    <option value="LOG">Logística (LOG)</option>
-                                    <option value="JUR">Jurídico (JUR)</option>
-                                </select>
-                            </div>
-                            
-                            <div class="filter-group">
-                                <label class="filter-label">Buscar</label>
-                                <input type="text" id="searchInput" class="form-input" placeholder="Buscar en número, asunto o destinatario..." oninput="applyFilters()">
-                            </div>
-
-                            <div class="filter-group" style="margin-top: 20px;">
-                                <button class="btn btn-secondary" onclick="exportHistory()">
-                                    📊 Exportar
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- INFORMACIÓN -->
-                        <div id="historyInfo" class="mb-20"></div>
-                        
-                        <!-- TABLA -->
-                        <div class="table-container">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Número</th>
-                                        <th>Tipo</th>
-                                        <th>Departamento</th>
-                                        <th>Asunto</th>
-                                        <th>Destinatario</th>
-                                        <th>Fecha</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="historyTable">
-                                    <tr>
-                                        <td colspan="7" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-                                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
-                                            <div>Cargando documentos...</div>
-                                        </td>
-                                    </tr>
-                                </tbody>
+</tbody>
                             </table>
                         </div>
                     </div>
@@ -142,14 +74,16 @@
     <!-- BARRA DE ESTADO -->
     <div class="status-bar">
         <div class="container">
-            <span id="statusMessage">🔄 Configurar conexión a base de datos...</span>
+            <span id="statusMessage">🔄 Inicializando sistema...</span>
         </div>
     </div>
 
     <script>
         // 🔥 CONFIGURACIÓN GLOBAL
-        let SUPABASE_URL = '';
-        let SUPABASE_ANON_KEY = '';
+        const SUPABASE_URL = 'https://xgfzyoxdokemeekqgxyp.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnZnp5b3hkb2tlbWVla3FneHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5Mzk5MDIsImV4cCI6MjA2NTUxNTkwMn0.ku5o86yfB6F5T9akZ2oVHV0ze5UEFZ18IRpoFNbDBU4';
+
+        // Variables globales
         let currentUser = null;
         let supabaseClient = null;
         let allDocuments = [];
@@ -171,75 +105,8 @@
 
         console.log('✅ Sistema SINTEL inicializado');
 
-        // 🔌 PRUEBA DE CONEXIÓN
-        async function testConnection() {
-            const url = document.getElementById('supabaseUrl').value.trim();
-            const key = document.getElementById('supabaseKey').value.trim();
-            
-            if (!url || !key) {
-                showConnectionResult('Complete ambos campos de configuración', 'error');
-                return;
-            }
-            
-            try {
-                updateStatus('🔄 Probando conexión...', 'info');
-                
-                // Crear cliente temporal para prueba
-                const testClient = supabase.createClient(url, key);
-                
-                // Probar conexión listando tablas o haciendo una consulta simple
-                const { data, error } = await testClient.from('documents').select('count', { count: 'exact', head: true });
-                
-                if (error) {
-                    throw error;
-                }
-                
-                // Conexión exitosa
-                SUPABASE_URL = url;
-                SUPABASE_ANON_KEY = key;
-                supabaseClient = testClient;
-                
-                showConnectionResult('✅ Conexión exitosa! Tabla "documents" encontrada.', 'success');
-                
-                // Habilitar botón de login
-                document.getElementById('loginButton').disabled = false;
-                
-                updateStatus('🟢 Base de datos conectada', 'success');
-                
-            } catch (error) {
-                console.error('❌ Error de conexión:', error);
-                
-                let errorMessage = 'Error de conexión: ';
-                
-                if (error.message.includes('relation "documents" does not exist')) {
-                    errorMessage = '❌ Tabla "documents" no existe. Cree la tabla usando el script SQL proporcionado.';
-                } else if (error.message.includes('Invalid API key')) {
-                    errorMessage = '❌ Clave de API inválida. Verifique su anon key.';
-                } else if (error.message.includes('fetch')) {
-                    errorMessage = '❌ URL incorrecta o servidor no disponible.';
-                } else {
-                    errorMessage += error.message;
-                }
-                
-                showConnectionResult(errorMessage, 'error');
-                updateStatus('🔴 Error de conexión', 'error');
-            }
-        }
-
-        function showConnectionResult(message, type) {
-            const result = document.getElementById('connectionResult');
-            result.className = `alert alert-${type}`;
-            result.textContent = message;
-            result.classList.remove('hidden');
-        }
-
         // 🔐 FUNCIÓN DE LOGIN
         function handleLogin() {
-            if (!supabaseClient) {
-                showLoginError('Primero configure y pruebe la conexión a la base de datos');
-                return;
-            }
-            
             console.log('🔑 Procesando acceso al sistema...');
             
             const username = document.getElementById('username').value.trim();
@@ -279,10 +146,6 @@
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('hidden');
             
-            // Mostrar información del usuario
-            document.getElementById('userWelcome').textContent = `Bienvenido, ${currentUser.name}`;
-            document.getElementById('userAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
-            
             // Configurar interfaz según rol
             if (currentUser && currentUser.role === 'Administrador') {
                 document.getElementById('countersTab').style.display = 'block';
@@ -298,6 +161,11 @@
             console.log('🚀 Inicializando sistema completo...');
             
             try {
+                if (typeof supabase === 'undefined') {
+                    throw new Error('Supabase no disponible');
+                }
+                
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 updateConnectionStatus('🟢', '#2ecc71');
                 updateStatus('🟢 Sistema conectado correctamente', 'success');
                 
@@ -396,7 +264,7 @@
                     const groups = {};
                     const currentYear = new Date().getFullYear();
                     
-                    (documents || []).forEach(doc => {
+                    documents.forEach(doc => {
                         const year = new Date(doc.created_date).getFullYear();
                         const key = `${doc.document_type}_${doc.department}_${year}`;
                         
@@ -426,7 +294,7 @@
                     if (error) throw error;
                     
                     const groups = {};
-                    (documents || []).forEach(doc => {
+                    documents.forEach(doc => {
                         const year = new Date(doc.created_date).getFullYear();
                         const key = `${doc.document_type}_${doc.department}_${year}`;
                         
@@ -639,7 +507,7 @@
             `;
         }
 
-        // 📝 GENERACIÓN DE DOCUMENTOS (FORMATO ACTUALIZADO)
+        // 📝 GENERACIÓN DE DOCUMENTOS
         function generateDocument() {
             const type = document.getElementById('documentType').value;
             const department = document.getElementById('department').value;
@@ -657,13 +525,13 @@
 
             const currentYear = new Date().getFullYear();
 
-            // Obtener próximo número consecutivo con el nuevo formato
+            // Obtener próximo número consecutivo
             supabaseClient
                 .from('documents')
                 .select('document_number')
                 .eq('document_type', type)
                 .eq('department', department)
-                .like('document_number', `%-${department}-%${currentYear}%`)
+                .like('document_number', `%-${department}-${currentYear}%`)
                 .then(({ data: existingDocs, error }) => {
                     if (error) throw error;
 
@@ -671,9 +539,7 @@
                     const existingNumbers = [];
                     if (existingDocs && existingDocs.length > 0) {
                         existingDocs.forEach(doc => {
-                            // Nuevo patrón: buscar número después del departamento
-                            // Ejemplo: "Acta de Reunión No. GGE-007-2025" -> extraer "007"
-                            const match = doc.document_number.match(new RegExp(`${department}-(\\d+)-${currentYear}`));
+                            const match = doc.document_number.match(/(\d+)-/);
                             if (match) {
                                 existingNumbers.push(parseInt(match[1]));
                             }
@@ -706,8 +572,7 @@
                         default: prefix = 'Documento No.';
                     }
 
-                    // NUEVO FORMATO: [TIPO] No. [DEPARTAMENTO]-[NÚMERO]-[AÑO]
-                    const documentNumber = `${prefix} ${department}-${nextNumber.toString().padStart(3, '0')}-${currentYear}`;
+                    const documentNumber = `${prefix} ${nextNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
 
                     // Crear objeto de documento
                     currentDocumentData = {
@@ -811,7 +676,7 @@
                 });
         }
 
-        // 🗑️ ELIMINACIÓN DE DOCUMENTOS (FORMATO ACTUALIZADO)
+        // 🗑️ ELIMINACIÓN DE DOCUMENTOS
         function deleteDocument(documentId, documentNumber) {
             if (!currentUser || currentUser.role !== 'Administrador') {
                 showAlert('No tiene permisos para esta acción', 'error');
@@ -846,50 +711,14 @@
                         .then(({ error: deleteError }) => {
                             if (deleteError) throw deleteError;
 
-                            // Reorganizar numeración con el nuevo formato
+                            // Reorganizar numeración
                             const year = new Date(docData.created_date).getFullYear();
                             
-                            // Obtener todos los documentos del mismo tipo, departamento y año
-                            return supabaseClient
-                                .from('documents')
-                                .select('id, document_number, document_type, department, created_date')
-                                .eq('document_type', docData.document_type)
-                                .eq('department', docData.department)
-                                .like('document_number', `%-${docData.department}-%${year}%`)
-                                .order('created_date', { ascending: true });
-                        })
-                        .then(({ data: remainingDocs, error: fetchError }) => {
-                            if (fetchError) throw fetchError;
-                            
-                            // Renumerar los documentos restantes
-                            const updatePromises = (remainingDocs || []).map((doc, index) => {
-                                const newNumber = index + 1;
-                                
-                                // Determinar prefijo según tipo
-                                let prefix;
-                                switch (doc.document_type) {
-                                    case 'oficio': prefix = 'Oficio No.'; break;
-                                    case 'memorando': prefix = 'Memorando No.'; break;
-                                    case 'orden_compra': prefix = 'Orden de Compra No.'; break;
-                                    case 'proforma': prefix = 'Proforma No.'; break;
-                                    case 'acta_entrega_externa': prefix = 'Acta de Entrega-Recepción Externa No.'; break;
-                                    case 'acta_entrega_interna': prefix = 'Acta de Entrega-Recepción Interna No.'; break;
-                                    case 'acta_reunion': prefix = 'Acta de Reunión No.'; break;
-                                    case 'informe_tecnico': prefix = 'Informe Técnico No.'; break;
-                                    case 'informe_viaticos': prefix = 'Informe de Viáticos No.'; break;
-                                    default: prefix = 'Documento No.';
-                                }
-                                
-                                // NUEVO FORMATO: [TIPO] No. [DEPARTAMENTO]-[NÚMERO]-[AÑO]
-                                const newDocumentNumber = `${prefix} ${doc.department}-${newNumber.toString().padStart(3, '0')}-${year}`;
-                                
-                                return supabaseClient
-                                    .from('documents')
-                                    .update({ document_number: newDocumentNumber })
-                                    .eq('id', doc.id);
+                            return supabaseClient.rpc('reorganize_document_numbers', {
+                                doc_type: docData.document_type,
+                                dept: docData.department,
+                                doc_year: year
                             });
-                            
-                            return Promise.all(updatePromises);
                         });
                 })
                 .then(() => {
@@ -1099,7 +928,6 @@
                                 <p><strong>ID del documento:</strong> ${doc.id}</p>
                                 <p><strong>Fecha de creación:</strong> ${date}</p>
                                 <p><strong>Estado:</strong> ${doc.status}</p>
-                                <p><strong>Creado por:</strong> ${doc.created_by} (${doc.created_by_role})</p>
                             </div>
                         </div>
                     </div>
@@ -1130,7 +958,7 @@
             // Cargar datos específicos de la pestaña si es necesario
             if (tabName === 'history' && allDocuments.length === 0) {
                 loadHistory();
-            } else if (tabName === 'counters' && currentUser && currentUser.role === 'Administrador') {
+            } else if (tabName === 'counters' && currentUser.role === 'Administrador') {
                 loadDetailedCounters();
             }
         }
@@ -1273,9 +1101,7 @@
                 passwordField.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        if (!document.getElementById('loginButton').disabled) {
-                            handleLogin();
-                        }
+                        handleLogin();
                     }
                 });
             }
@@ -1288,7 +1114,7 @@
             console.log('🌐 Sistema SINTEL cargado completamente');
             
             try {
-                updateStatus('🔧 Configure su conexión a Supabase para comenzar', 'info');
+                updateStatus('🟢 Sistema SINTEL inicializado correctamente', 'success');
                 console.log('✅ Inicialización exitosa');
             } catch (error) {
                 console.error('❌ Error en inicialización:', error);
@@ -1327,32 +1153,6 @@
             max-width: 1400px;
             margin: 0 auto;
             padding: 0 20px;
-        }
-
-        /* CONFIG PANEL */
-        .config-panel {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
-        }
-
-        .config-title {
-            color: #FBB040;
-            font-size: 1.25rem;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .config-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
         }
 
         /* HEADER */
@@ -1477,7 +1277,7 @@
             border-radius: 20px;
             padding: 40px;
             width: 100%;
-            max-width: 500px;
+            max-width: 400px;
             text-align: center;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
@@ -1733,12 +1533,6 @@
             color: #ffffff;
         }
 
-        .alert-info {
-            background: rgba(52, 152, 219, 0.2);
-            border-left-color: #3498db;
-            color: #ffffff;
-        }
-
         /* STATUS BAR */
         .status-bar {
             position: fixed;
@@ -1867,7 +1661,7 @@
                 min-width: auto;
             }
 
-            .form-grid, .config-grid {
+            .form-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -1887,7 +1681,7 @@
     </style>
 </head>
 <body>
-    <!-- PANTALLA DE CONFIGURACIÓN Y LOGIN -->
+    <!-- PANTALLA DE LOGIN -->
     <div id="loginScreen" class="login-container">
         <div class="login-card fade-in">
             <div class="logo">
@@ -1898,36 +1692,6 @@
                 </div>
             </div>
             
-            <!-- CONFIGURACIÓN DE SUPABASE -->
-            <div class="config-panel">
-                <div class="config-title">⚙️ Configuración de Base de Datos</div>
-                
-                <div class="alert alert-info">
-                    <strong>🔧 Configuración requerida:</strong> Ingrese sus credenciales de Supabase para conectar la base de datos.
-                </div>
-                
-                <div class="config-grid">
-                    <div class="form-group">
-                        <label class="form-label">URL de Supabase</label>
-                        <input type="text" id="supabaseUrl" class="form-input" placeholder="https://tu-proyecto.supabase.co" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Clave Anónima (anon key)</label>
-                        <input type="text" id="supabaseKey" class="form-input" placeholder="eyJhbGci..." required>
-                    </div>
-                </div>
-                
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <button class="btn" onclick="testConnection()">
-                        🔌 Probar Conexión
-                    </button>
-                </div>
-                
-                <div id="connectionResult" class="hidden"></div>
-            </div>
-            
-            <!-- LOGIN -->
             <form id="loginForm">
                 <div class="form-group">
                     <label class="form-label">Acceso al Sistema</label>
@@ -1939,7 +1703,7 @@
                     <input type="password" id="password" class="form-input" placeholder="Ingrese su clave" required>
                 </div>
                 
-                <button type="button" class="btn" style="width: 100%; margin-top: 10px;" onclick="handleLogin()" id="loginButton" disabled>
+                <button type="button" class="btn" style="width: 100%; margin-top: 10px;" onclick="handleLogin()">
                     🔐 Acceder al Sistema
                 </button>
             </form>
@@ -1948,29 +1712,10 @@
                 Error en las credenciales
             </div>
             
-            <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px; font-size: 12px;">
-                <strong>💡 Credenciales de prueba:</strong><br>
-                <strong>Admin:</strong> admin / admin123<br>
-                <strong>Usuario:</strong> usuario / usuario123<br><br>
-                <strong>📝 Crear tabla SQL en Supabase:</strong><br>
-                <details style="margin-top: 10px;">
-                    <summary style="cursor: pointer; color: #FBB040;">Ver script SQL</summary>
-                    <code style="display: block; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px; font-size: 11px;">
-CREATE TABLE documents (<br>
-&nbsp;&nbsp;id BIGSERIAL PRIMARY KEY,<br>
-&nbsp;&nbsp;document_number TEXT NOT NULL,<br>
-&nbsp;&nbsp;document_type TEXT NOT NULL,<br>
-&nbsp;&nbsp;department TEXT NOT NULL,<br>
-&nbsp;&nbsp;subject TEXT NOT NULL,<br>
-&nbsp;&nbsp;recipient TEXT,<br>
-&nbsp;&nbsp;content TEXT,<br>
-&nbsp;&nbsp;created_by TEXT NOT NULL,<br>
-&nbsp;&nbsp;created_by_role TEXT NOT NULL,<br>
-&nbsp;&nbsp;created_date TIMESTAMPTZ DEFAULT NOW(),<br>
-&nbsp;&nbsp;status TEXT DEFAULT 'Activo'<br>
-);
-                    </code>
-                </details>
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 12px; color: rgba(255,255,255,0.6);">
+                <strong>Credenciales del sistema:</strong><br>
+                Administrador: admin / admin123<br>
+                Acceso estándar: usuario / usuario123
             </div>
         </div>
     </div>
@@ -2149,4 +1894,68 @@ CREATE TABLE documents (<br>
                         <!-- FILTROS -->
                         <div class="filters-row">
                             <div class="filter-group">
-                                <label class="filter-
+                                <label class="filter-label">Tipo de Documento</label>
+                                <select id="filterType" class="form-select" onchange="applyFilters()">
+                                    <option value="">Todos los tipos</option>
+                                    <option value="oficio">Oficio</option>
+                                    <option value="memorando">Memorando</option>
+                                    <option value="orden_compra">Orden de Compra</option>
+                                    <option value="proforma">Proforma</option>
+                                    <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
+                                    <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
+                                    <option value="acta_reunion">Acta de Reunión</option>
+                                    <option value="informe_tecnico">Informe Técnico</option>
+                                    <option value="informe_viaticos">Informe de Viáticos</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label class="filter-label">Departamento</label>
+                                <select id="filterDepartment" class="form-select" onchange="applyFilters()">
+                                    <option value="">Todos los departamentos</option>
+                                    <option value="GGE">Gerencia General (GGE)</option>
+                                    <option value="PMO">Oficina de Proyectos (PMO)</option>
+                                    <option value="CAF">Contabilidad y Finanzas (CAF)</option>
+                                    <option value="RHU">Recursos Humanos (RHU)</option>
+                                    <option value="TIC">Tecnologías de Información (TIC)</option>
+                                    <option value="LOG">Logística (LOG)</option>
+                                    <option value="JUR">Jurídico (JUR)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label class="filter-label">Buscar</label>
+                                <input type="text" id="searchInput" class="form-input" placeholder="Buscar en número, asunto o destinatario..." oninput="applyFilters()">
+                            </div>
+
+                            <div class="filter-group" style="margin-top: 20px;">
+                                <button class="btn btn-secondary" onclick="exportHistory()">
+                                    📊 Exportar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- INFORMACIÓN -->
+                        <div id="historyInfo" class="mb-20"></div>
+                        
+                        <!-- TABLA -->
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Número</th>
+                                        <th>Tipo</th>
+                                        <th>Departamento</th>
+                                        <th>Asunto</th>
+                                        <th>Destinatario</th>
+                                        <th>Fecha</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTable">
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
+                                            <div>Cargando documentos...</div>
+                                        </td>
+                                    </tr>
