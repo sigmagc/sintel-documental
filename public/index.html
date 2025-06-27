@@ -572,7 +572,7 @@
                         default: prefix = 'Documento No.';
                     }
 
-                    const documentNumber = `${prefix} ${nextNumber.toString().padStart(3, '0')}-${department}-${currentYear}`;
+                    const documentNumber = `${prefix} ${department}-${nextNumber.toString().padStart(3, '0')}-${currentYear}`;
 
                     // Crear objeto de documento
                     currentDocumentData = {
