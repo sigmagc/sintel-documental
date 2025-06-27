@@ -1,764 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión Documental SINTEL</title>
-    
-    <!-- Agregar Supabase Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #092947 0%, #0a3555 100%);
-            min-height: 100vh;
-            color: #ffffff;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        /* HEADER */
-        .header {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 15px 0;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .logo-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, #FBB040 0%, #e09935 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: #092947;
-        }
-
-        .logo-text {
-            font-size: 28px;
-            font-weight: bold;
-            color: #FBB040;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: #FBB040;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #092947;
-            font-weight: bold;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #FBB040 0%, #e09935 100%);
-            color: #092947;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(251, 176, 64, 0.4);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 5px;
-        }
-
-        /* LOGIN SCREEN */
-        .login-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        .login-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            padding: 40px;
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .login-title {
-            font-size: 2rem;
-            margin-bottom: 10px;
-            color: #FBB040;
-        }
-
-        .login-subtitle {
-            color: rgba(255, 255, 255, 0.8);
-            margin-bottom: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #FBB040;
-            box-shadow: 0 0 0 3px rgba(251, 176, 64, 0.2);
-        }
-
-        .form-input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .form-select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            font-size: 14px;
-        }
-
-        .form-select option {
-            background: #092947;
-            color: #ffffff;
-        }
-
-        .form-textarea {
-            width: 100%;
-            min-height: 120px;
-            padding: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            font-size: 14px;
-            resize: vertical;
-            font-family: inherit;
-        }
-
-        /* STATISTICS CARDS */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .stat-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 25px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #FBB040 0%, #e09935 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px;
-            font-size: 24px;
-            color: #092947;
-        }
-
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #FBB040;
-        }
-
-        .stat-label {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 14px;
-        }
-
-        /* NAVIGATION TABS */
-        .nav-tabs {
-            display: flex;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 5px;
-            margin-bottom: 30px;
-            overflow-x: auto;
-        }
-
-        .nav-tab {
-            flex: 1;
-            min-width: 120px;
-            padding: 12px 20px;
-            background: transparent;
-            border: none;
-            color: rgba(255, 255, 255, 0.7);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            white-space: nowrap;
-        }
-
-        .nav-tab.active {
-            background: linear-gradient(135deg, #FBB040 0%, #e09935 100%);
-            color: #092947;
-        }
-
-        .nav-tab:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-        }
-
-        /* CONTENT SECTIONS */
-        .main-content {
-            padding: 30px 0;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            margin-bottom: 20px;
-            color: #FBB040;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        /* TABLES */
-        .table-container {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .table th {
-            background: rgba(251, 176, 64, 0.2);
-            color: #FBB040;
-            padding: 15px 12px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .table td {
-            padding: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.9);
-        }
-
-        .table tr:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        /* ALERTS */
-        .alert {
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid;
-            backdrop-filter: blur(10px);
-        }
-
-        .alert-success {
-            background: rgba(46, 204, 113, 0.2);
-            border-left-color: #2ecc71;
-            color: #ffffff;
-        }
-
-        .alert-error {
-            background: rgba(231, 76, 60, 0.2);
-            border-left-color: #e74c3c;
-            color: #ffffff;
-        }
-
-        .alert-warning {
-            background: rgba(241, 196, 15, 0.2);
-            border-left-color: #f1c40f;
-            color: #ffffff;
-        }
-
-        /* STATUS BAR */
-        .status-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 10px 20px;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.8);
-            z-index: 1000;
-        }
-
-        /* CONTADORES */
-        .counters-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 15px;
-        }
-
-        .counter-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #FBB040;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .counter-info {
-            flex: 1;
-        }
-
-        .counter-type {
-            font-weight: 600;
-            color: #FBB040;
-            margin-bottom: 5px;
-        }
-
-        .counter-dept {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .counter-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ffffff;
-        }
-
-        /* UTILITIES */
-        .hidden {
-            display: none !important;
-        }
-
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* PREVIEW */
-        .preview-container {
-            max-height: 400px;
-            overflow-y: auto;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            padding: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        /* FILTERS */
-        .filters-row {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .filter-label {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.7);
-            font-weight: 500;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-        }
-
-        /* RESPONSIVE */
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .nav-tabs {
-                flex-direction: column;
-            }
-
-            .nav-tab {
-                min-width: auto;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .filters-row {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .table-container {
-                overflow-x: auto;
-            }
-
-            .table {
-                min-width: 600px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- PANTALLA DE LOGIN -->
-    <div id="loginScreen" class="login-container">
-        <div class="login-card fade-in">
-            <div class="logo">
-                <div class="logo-icon">📄</div>
-                <div>
-                    <div class="login-title">SINTEL</div>
-                    <div class="login-subtitle">Sistema de Gestión Documental</div>
-                </div>
-            </div>
-            
-            <form id="loginForm">
-                <div class="form-group">
-                    <label class="form-label">Acceso al Sistema</label>
-                    <input type="text" id="username" class="form-input" placeholder="Ingrese código de acceso" required>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">Clave</label>
-                    <input type="password" id="password" class="form-input" placeholder="Ingrese su clave" required>
-                </div>
-                
-                <button type="button" class="btn" style="width: 100%; margin-top: 10px;" onclick="handleLogin()">
-                    🔐 Acceder al Sistema
-                </button>
-            </form>
-            
-            <div id="loginError" class="alert alert-error hidden">
-                Error en las credenciales
-            </div>
-        </div>
-    </div>
-
-    <!-- APLICACIÓN PRINCIPAL -->
-    <div id="mainApp" class="hidden">
-        <!-- HEADER -->
-        <header class="header">
-            <div class="container">
-                <div class="header-content">
-                    <div class="logo">
-                        <div class="logo-icon">📄</div>
-                        <div class="logo-text">SINTEL</div>
-                    </div>
-                    
-                    <div class="user-info">
-                        <span id="userWelcome">Sistema SINTEL</span>
-                        <div class="user-avatar" id="userAvatar">📄</div>
-                        <button class="btn btn-secondary" onclick="refreshSystem()">
-                            🔄 Actualizar
-                        </button>
-                        <button class="btn btn-secondary" onclick="handleLogout()">
-                            🚪 Salir
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <!-- CONTENIDO PRINCIPAL -->
-        <main class="main-content">
-            <div class="container">
-                <!-- ESTADÍSTICAS -->
-                <div class="stats-grid">
-                    <div class="stat-card fade-in">
-                        <div class="stat-icon">📄</div>
-                        <div class="stat-number" id="totalDocuments">0</div>
-                        <div class="stat-label">Total Documentos</div>
-                    </div>
-                    
-                    <div class="stat-card fade-in">
-                        <div class="stat-icon">📅</div>
-                        <div class="stat-number" id="todayDocuments">0</div>
-                        <div class="stat-label">Documentos Hoy</div>
-                    </div>
-                    
-                    <div class="stat-card fade-in">
-                        <div class="stat-icon">🏢</div>
-                        <div class="stat-number" id="activeDepartments">0</div>
-                        <div class="stat-label">Departamentos Activos</div>
-                    </div>
-
-                    <div class="stat-card fade-in">
-                        <div class="stat-icon">⚡</div>
-                        <div class="stat-number pulse" id="connectionStatus">●</div>
-                        <div class="stat-label">Estado Sistema</div>
-                    </div>
-                </div>
-
-                <!-- CONTADORES EN PANTALLA PRINCIPAL -->
-                <div class="card">
-                    <h2 class="card-title">
-                        📊 Contadores por Departamento y Tipo
-                    </h2>
-                    <div id="mainCountersDisplay">
-                        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-                            <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
-                            <div>Cargando contadores...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- NAVEGACIÓN POR PESTAÑAS -->
-                <div class="nav-tabs">
-                    <button class="nav-tab active" onclick="showTab('generator')">
-                        📝 Generar Documento
-                    </button>
-                    <button class="nav-tab" onclick="showTab('history')">
-                        📚 Historial
-                    </button>
-                    <button class="nav-tab" onclick="showTab('counters')" id="countersTab" style="display: none;">
-                        📊 Gestión Avanzada
-                    </button>
-                </div>
-
-                <!-- PESTAÑA: GENERAR DOCUMENTO -->
-                <div id="generatorTab" class="tab-content active">
-                    <div class="card">
-                        <h2 class="card-title">
-                            📝 Generar Nuevo Documento
-                        </h2>
-                        
-                        <form id="documentForm">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">Tipo de Documento</label>
-                                    <select id="documentType" class="form-select" required>
-                                        <option value="">Seleccione el tipo</option>
-                                        <option value="oficio">Oficio</option>
-                                        <option value="memorando">Memorando</option>
-                                        <option value="orden_compra">Orden de Compra</option>
-                                        <option value="proforma">Proforma</option>
-                                        <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
-                                        <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
-                                        <option value="acta_reunion">Acta de Reunión</option>
-                                        <option value="informe_tecnico">Informe Técnico</option>
-                                        <option value="informe_viaticos">Informe de Viáticos</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">Departamento</label>
-                                    <select id="department" class="form-select" required>
-                                        <option value="">Seleccione el departamento</option>
-                                        <option value="GGE">Gerencia General (GGE)</option>
-                                        <option value="PMO">Oficina de Proyectos (PMO)</option>
-                                        <option value="CAF">Contabilidad y Finanzas (CAF)</option>
-                                        <option value="RHU">Recursos Humanos (RHU)</option>
-                                        <option value="TIC">Tecnologías de Información (TIC)</option>
-                                        <option value="LOG">Logística (LOG)</option>
-                                        <option value="JUR">Jurídico (JUR)</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Asunto</label>
-                                <input type="text" id="subject" class="form-input" placeholder="Ingrese el asunto del documento" required maxlength="500">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Destinatario (Opcional)</label>
-                                <input type="text" id="recipient" class="form-input" placeholder="Nombre del destinatario" maxlength="255">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Contenido (Opcional)</label>
-                                <textarea id="content" class="form-textarea" placeholder="Contenido del documento..." maxlength="5000"></textarea>
-                            </div>
-                            
-                            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
-                                <button type="button" class="btn" onclick="generateDocument()">
-                                    ⚡ Generar Documento
-                                </button>
-                                <button type="button" class="btn btn-secondary" onclick="clearForm()">
-                                    🗑️ Limpiar Formulario
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- VISTA PREVIA -->
-                    <div id="previewCard" class="card hidden">
-                        <h2 class="card-title">
-                            👁️ Vista Previa del Documento
-                        </h2>
-                        <div id="documentPreview" class="preview-container"></div>
-                        <div style="text-align: center; margin-top: 20px;">
-                            <button class="btn" onclick="saveDocument()">
-                                💾 Guardar Documento
-                            </button>
-                            <button class="btn btn-secondary" onclick="clearPreview()">
-                                ❌ Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PESTAÑA: HISTORIAL -->
-                <div id="historyTab" class="tab-content">
-                    <div class="card">
-                        <h2 class="card-title">
-                            📚 Historial de Documentos
-                        </h2>
-                        
-                        <!-- FILTROS -->
+<!-- FILTROS -->
                         <div class="filters-row">
                             <div class="filter-group">
                                 <label class="filter-label">Tipo de Documento</label>
@@ -902,16 +142,14 @@
     <!-- BARRA DE ESTADO -->
     <div class="status-bar">
         <div class="container">
-            <span id="statusMessage">🔄 Inicializando sistema...</span>
+            <span id="statusMessage">🔄 Configurar conexión a base de datos...</span>
         </div>
     </div>
 
     <script>
         // 🔥 CONFIGURACIÓN GLOBAL
-        const SUPABASE_URL = 'https://xgfzyoxdokemeekqgxyp.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnZnp5b3hkb2tlbWVla3FneHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5Mzk5MDIsImV4cCI6MjA2NTUxNTkwMn0.ku5o86yfB6F5T9akZ2oVHV0ze5UEFZ18IRpoFNbDBU4';
-
-        // Variables globales
+        let SUPABASE_URL = '';
+        let SUPABASE_ANON_KEY = '';
         let currentUser = null;
         let supabaseClient = null;
         let allDocuments = [];
@@ -933,8 +171,75 @@
 
         console.log('✅ Sistema SINTEL inicializado');
 
+        // 🔌 PRUEBA DE CONEXIÓN
+        async function testConnection() {
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
+            
+            if (!url || !key) {
+                showConnectionResult('Complete ambos campos de configuración', 'error');
+                return;
+            }
+            
+            try {
+                updateStatus('🔄 Probando conexión...', 'info');
+                
+                // Crear cliente temporal para prueba
+                const testClient = supabase.createClient(url, key);
+                
+                // Probar conexión listando tablas o haciendo una consulta simple
+                const { data, error } = await testClient.from('documents').select('count', { count: 'exact', head: true });
+                
+                if (error) {
+                    throw error;
+                }
+                
+                // Conexión exitosa
+                SUPABASE_URL = url;
+                SUPABASE_ANON_KEY = key;
+                supabaseClient = testClient;
+                
+                showConnectionResult('✅ Conexión exitosa! Tabla "documents" encontrada.', 'success');
+                
+                // Habilitar botón de login
+                document.getElementById('loginButton').disabled = false;
+                
+                updateStatus('🟢 Base de datos conectada', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error de conexión:', error);
+                
+                let errorMessage = 'Error de conexión: ';
+                
+                if (error.message.includes('relation "documents" does not exist')) {
+                    errorMessage = '❌ Tabla "documents" no existe. Cree la tabla usando el script SQL proporcionado.';
+                } else if (error.message.includes('Invalid API key')) {
+                    errorMessage = '❌ Clave de API inválida. Verifique su anon key.';
+                } else if (error.message.includes('fetch')) {
+                    errorMessage = '❌ URL incorrecta o servidor no disponible.';
+                } else {
+                    errorMessage += error.message;
+                }
+                
+                showConnectionResult(errorMessage, 'error');
+                updateStatus('🔴 Error de conexión', 'error');
+            }
+        }
+
+        function showConnectionResult(message, type) {
+            const result = document.getElementById('connectionResult');
+            result.className = `alert alert-${type}`;
+            result.textContent = message;
+            result.classList.remove('hidden');
+        }
+
         // 🔐 FUNCIÓN DE LOGIN
         function handleLogin() {
+            if (!supabaseClient) {
+                showLoginError('Primero configure y pruebe la conexión a la base de datos');
+                return;
+            }
+            
             console.log('🔑 Procesando acceso al sistema...');
             
             const username = document.getElementById('username').value.trim();
@@ -974,6 +279,10 @@
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('hidden');
             
+            // Mostrar información del usuario
+            document.getElementById('userWelcome').textContent = `Bienvenido, ${currentUser.name}`;
+            document.getElementById('userAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
+            
             // Configurar interfaz según rol
             if (currentUser && currentUser.role === 'Administrador') {
                 document.getElementById('countersTab').style.display = 'block';
@@ -989,11 +298,6 @@
             console.log('🚀 Inicializando sistema completo...');
             
             try {
-                if (typeof supabase === 'undefined') {
-                    throw new Error('Supabase no disponible');
-                }
-                
-                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 updateConnectionStatus('🟢', '#2ecc71');
                 updateStatus('🟢 Sistema conectado correctamente', 'success');
                 
@@ -1092,7 +396,7 @@
                     const groups = {};
                     const currentYear = new Date().getFullYear();
                     
-                    documents.forEach(doc => {
+                    (documents || []).forEach(doc => {
                         const year = new Date(doc.created_date).getFullYear();
                         const key = `${doc.document_type}_${doc.department}_${year}`;
                         
@@ -1122,7 +426,7 @@
                     if (error) throw error;
                     
                     const groups = {};
-                    documents.forEach(doc => {
+                    (documents || []).forEach(doc => {
                         const year = new Date(doc.created_date).getFullYear();
                         const key = `${doc.document_type}_${doc.department}_${year}`;
                         
@@ -1558,7 +862,7 @@
                             if (fetchError) throw fetchError;
                             
                             // Renumerar los documentos restantes
-                            const updatePromises = remainingDocs.map((doc, index) => {
+                            const updatePromises = (remainingDocs || []).map((doc, index) => {
                                 const newNumber = index + 1;
                                 
                                 // Determinar prefijo según tipo
@@ -1795,6 +1099,7 @@
                                 <p><strong>ID del documento:</strong> ${doc.id}</p>
                                 <p><strong>Fecha de creación:</strong> ${date}</p>
                                 <p><strong>Estado:</strong> ${doc.status}</p>
+                                <p><strong>Creado por:</strong> ${doc.created_by} (${doc.created_by_role})</p>
                             </div>
                         </div>
                     </div>
@@ -1825,7 +1130,7 @@
             // Cargar datos específicos de la pestaña si es necesario
             if (tabName === 'history' && allDocuments.length === 0) {
                 loadHistory();
-            } else if (tabName === 'counters' && currentUser.role === 'Administrador') {
+            } else if (tabName === 'counters' && currentUser && currentUser.role === 'Administrador') {
                 loadDetailedCounters();
             }
         }
@@ -1968,7 +1273,9 @@
                 passwordField.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleLogin();
+                        if (!document.getElementById('loginButton').disabled) {
+                            handleLogin();
+                        }
                     }
                 });
             }
@@ -1981,7 +1288,7 @@
             console.log('🌐 Sistema SINTEL cargado completamente');
             
             try {
-                updateStatus('🟢 Sistema SINTEL inicializado correctamente', 'success');
+                updateStatus('🔧 Configure su conexión a Supabase para comenzar', 'info');
                 console.log('✅ Inicialización exitosa');
             } catch (error) {
                 console.error('❌ Error en inicialización:', error);
@@ -1992,4 +1299,854 @@
         console.log('✅ SINTEL - Todos los scripts cargados exitosamente');
     </script>
 </body>
-</html>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión Documental SINTEL</title>
+    
+    <!-- Agregar Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #092947 0%, #0a3555 100%);
+            min-height: 100vh;
+            color: #ffffff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* CONFIG PANEL */
+        .config-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .config-title {
+            color: #FBB040;
+            font-size: 1.25rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* HEADER */
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #FBB040 0%, #e09935 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #092947;
+        }
+
+        .logo-text {
+            font-size: 28px;
+            font-weight: bold;
+            color: #FBB040;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: #FBB040;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #092947;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #FBB040 0%, #e09935 100%);
+            color: #092947;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(251, 176, 64, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 5px;
+        }
+
+        /* LOGIN SCREEN */
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-title {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #FBB040;
+        }
+
+        .login-subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #FBB040;
+            box-shadow: 0 0 0 3px rgba(251, 176, 64, 0.2);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .form-select option {
+            background: #092947;
+            color: #ffffff;
+        }
+
+        .form-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        /* STATISTICS CARDS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #FBB040 0%, #e09935 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 24px;
+            color: #092947;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #FBB040;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        /* NAVIGATION TABS */
+        .nav-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, #FBB040 0%, #e09935 100%);
+            color: #092947;
+        }
+
+        .nav-tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        /* CONTENT SECTIONS */
+        .main-content {
+            padding: 30px 0;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            margin-bottom: 20px;
+            color: #FBB040;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* TABLES */
+        .table-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: rgba(251, 176, 64, 0.2);
+            color: #FBB040;
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* ALERTS */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+            backdrop-filter: blur(10px);
+        }
+
+        .alert-success {
+            background: rgba(46, 204, 113, 0.2);
+            border-left-color: #2ecc71;
+            color: #ffffff;
+        }
+
+        .alert-error {
+            background: rgba(231, 76, 60, 0.2);
+            border-left-color: #e74c3c;
+            color: #ffffff;
+        }
+
+        .alert-warning {
+            background: rgba(241, 196, 15, 0.2);
+            border-left-color: #f1c40f;
+            color: #ffffff;
+        }
+
+        .alert-info {
+            background: rgba(52, 152, 219, 0.2);
+            border-left-color: #3498db;
+            color: #ffffff;
+        }
+
+        /* STATUS BAR */
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            z-index: 1000;
+        }
+
+        /* CONTADORES */
+        .counters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .counter-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #FBB040;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .counter-info {
+            flex: 1;
+        }
+
+        .counter-type {
+            font-weight: 600;
+            color: #FBB040;
+            margin-bottom: 5px;
+        }
+
+        .counter-dept {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .counter-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        /* UTILITIES */
+        .hidden {
+            display: none !important;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* PREVIEW */
+        .preview-container {
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* FILTERS */
+        .filters-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .nav-tabs {
+                flex-direction: column;
+            }
+
+            .nav-tab {
+                min-width: auto;
+            }
+
+            .form-grid, .config-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .table {
+                min-width: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- PANTALLA DE CONFIGURACIÓN Y LOGIN -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card fade-in">
+            <div class="logo">
+                <div class="logo-icon">📄</div>
+                <div>
+                    <div class="login-title">SINTEL</div>
+                    <div class="login-subtitle">Sistema de Gestión Documental</div>
+                </div>
+            </div>
+            
+            <!-- CONFIGURACIÓN DE SUPABASE -->
+            <div class="config-panel">
+                <div class="config-title">⚙️ Configuración de Base de Datos</div>
+                
+                <div class="alert alert-info">
+                    <strong>🔧 Configuración requerida:</strong> Ingrese sus credenciales de Supabase para conectar la base de datos.
+                </div>
+                
+                <div class="config-grid">
+                    <div class="form-group">
+                        <label class="form-label">URL de Supabase</label>
+                        <input type="text" id="supabaseUrl" class="form-input" placeholder="https://tu-proyecto.supabase.co" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Clave Anónima (anon key)</label>
+                        <input type="text" id="supabaseKey" class="form-input" placeholder="eyJhbGci..." required>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button class="btn" onclick="testConnection()">
+                        🔌 Probar Conexión
+                    </button>
+                </div>
+                
+                <div id="connectionResult" class="hidden"></div>
+            </div>
+            
+            <!-- LOGIN -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">Acceso al Sistema</label>
+                    <input type="text" id="username" class="form-input" placeholder="Ingrese código de acceso" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Clave</label>
+                    <input type="password" id="password" class="form-input" placeholder="Ingrese su clave" required>
+                </div>
+                
+                <button type="button" class="btn" style="width: 100%; margin-top: 10px;" onclick="handleLogin()" id="loginButton" disabled>
+                    🔐 Acceder al Sistema
+                </button>
+            </form>
+            
+            <div id="loginError" class="alert alert-error hidden">
+                Error en las credenciales
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px; font-size: 12px;">
+                <strong>💡 Credenciales de prueba:</strong><br>
+                <strong>Admin:</strong> admin / admin123<br>
+                <strong>Usuario:</strong> usuario / usuario123<br><br>
+                <strong>📝 Crear tabla SQL en Supabase:</strong><br>
+                <details style="margin-top: 10px;">
+                    <summary style="cursor: pointer; color: #FBB040;">Ver script SQL</summary>
+                    <code style="display: block; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px; font-size: 11px;">
+CREATE TABLE documents (<br>
+&nbsp;&nbsp;id BIGSERIAL PRIMARY KEY,<br>
+&nbsp;&nbsp;document_number TEXT NOT NULL,<br>
+&nbsp;&nbsp;document_type TEXT NOT NULL,<br>
+&nbsp;&nbsp;department TEXT NOT NULL,<br>
+&nbsp;&nbsp;subject TEXT NOT NULL,<br>
+&nbsp;&nbsp;recipient TEXT,<br>
+&nbsp;&nbsp;content TEXT,<br>
+&nbsp;&nbsp;created_by TEXT NOT NULL,<br>
+&nbsp;&nbsp;created_by_role TEXT NOT NULL,<br>
+&nbsp;&nbsp;created_date TIMESTAMPTZ DEFAULT NOW(),<br>
+&nbsp;&nbsp;status TEXT DEFAULT 'Activo'<br>
+);
+                    </code>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <!-- APLICACIÓN PRINCIPAL -->
+    <div id="mainApp" class="hidden">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="logo">
+                        <div class="logo-icon">📄</div>
+                        <div class="logo-text">SINTEL</div>
+                    </div>
+                    
+                    <div class="user-info">
+                        <span id="userWelcome">Sistema SINTEL</span>
+                        <div class="user-avatar" id="userAvatar">📄</div>
+                        <button class="btn btn-secondary" onclick="refreshSystem()">
+                            🔄 Actualizar
+                        </button>
+                        <button class="btn btn-secondary" onclick="handleLogout()">
+                            🚪 Salir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="main-content">
+            <div class="container">
+                <!-- ESTADÍSTICAS -->
+                <div class="stats-grid">
+                    <div class="stat-card fade-in">
+                        <div class="stat-icon">📄</div>
+                        <div class="stat-number" id="totalDocuments">0</div>
+                        <div class="stat-label">Total Documentos</div>
+                    </div>
+                    
+                    <div class="stat-card fade-in">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-number" id="todayDocuments">0</div>
+                        <div class="stat-label">Documentos Hoy</div>
+                    </div>
+                    
+                    <div class="stat-card fade-in">
+                        <div class="stat-icon">🏢</div>
+                        <div class="stat-number" id="activeDepartments">0</div>
+                        <div class="stat-label">Departamentos Activos</div>
+                    </div>
+
+                    <div class="stat-card fade-in">
+                        <div class="stat-icon">⚡</div>
+                        <div class="stat-number pulse" id="connectionStatus">●</div>
+                        <div class="stat-label">Estado Sistema</div>
+                    </div>
+                </div>
+
+                <!-- CONTADORES EN PANTALLA PRINCIPAL -->
+                <div class="card">
+                    <h2 class="card-title">
+                        📊 Contadores por Departamento y Tipo
+                    </h2>
+                    <div id="mainCountersDisplay">
+                        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                            <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
+                            <div>Cargando contadores...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NAVEGACIÓN POR PESTAÑAS -->
+                <div class="nav-tabs">
+                    <button class="nav-tab active" onclick="showTab('generator')">
+                        📝 Generar Documento
+                    </button>
+                    <button class="nav-tab" onclick="showTab('history')">
+                        📚 Historial
+                    </button>
+                    <button class="nav-tab" onclick="showTab('counters')" id="countersTab" style="display: none;">
+                        📊 Gestión Avanzada
+                    </button>
+                </div>
+
+                <!-- PESTAÑA: GENERAR DOCUMENTO -->
+                <div id="generatorTab" class="tab-content active">
+                    <div class="card">
+                        <h2 class="card-title">
+                            📝 Generar Nuevo Documento
+                        </h2>
+                        
+                        <form id="documentForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label">Tipo de Documento</label>
+                                    <select id="documentType" class="form-select" required>
+                                        <option value="">Seleccione el tipo</option>
+                                        <option value="oficio">Oficio</option>
+                                        <option value="memorando">Memorando</option>
+                                        <option value="orden_compra">Orden de Compra</option>
+                                        <option value="proforma">Proforma</option>
+                                        <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
+                                        <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
+                                        <option value="acta_reunion">Acta de Reunión</option>
+                                        <option value="informe_tecnico">Informe Técnico</option>
+                                        <option value="informe_viaticos">Informe de Viáticos</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Departamento</label>
+                                    <select id="department" class="form-select" required>
+                                        <option value="">Seleccione el departamento</option>
+                                        <option value="GGE">Gerencia General (GGE)</option>
+                                        <option value="PMO">Oficina de Proyectos (PMO)</option>
+                                        <option value="CAF">Contabilidad y Finanzas (CAF)</option>
+                                        <option value="RHU">Recursos Humanos (RHU)</option>
+                                        <option value="TIC">Tecnologías de Información (TIC)</option>
+                                        <option value="LOG">Logística (LOG)</option>
+                                        <option value="JUR">Jurídico (JUR)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Asunto</label>
+                                <input type="text" id="subject" class="form-input" placeholder="Ingrese el asunto del documento" required maxlength="500">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Destinatario (Opcional)</label>
+                                <input type="text" id="recipient" class="form-input" placeholder="Nombre del destinatario" maxlength="255">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Contenido (Opcional)</label>
+                                <textarea id="content" class="form-textarea" placeholder="Contenido del documento..." maxlength="5000"></textarea>
+                            </div>
+                            
+                            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
+                                <button type="button" class="btn" onclick="generateDocument()">
+                                    ⚡ Generar Documento
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="clearForm()">
+                                    🗑️ Limpiar Formulario
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- VISTA PREVIA -->
+                    <div id="previewCard" class="card hidden">
+                        <h2 class="card-title">
+                            👁️ Vista Previa del Documento
+                        </h2>
+                        <div id="documentPreview" class="preview-container"></div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="saveDocument()">
+                                💾 Guardar Documento
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearPreview()">
+                                ❌ Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PESTAÑA: HISTORIAL -->
+                <div id="historyTab" class="tab-content">
+                    <div class="card">
+                        <h2 class="card-title">
+                            📚 Historial de Documentos
+                        </h2>
+                        
+                        <!-- FILTROS -->
+                        <div class="filters-row">
+                            <div class="filter-group">
+                                <label class="filter-
