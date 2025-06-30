@@ -507,109 +507,139 @@
             `;
         }
 
-        // 📝 GENERACIÓN DE DOCUMENTOS
-        function generateDocument() {
-            const type = document.getElementById('documentType').value;
-            const department = document.getElementById('department').value;
-            const subject = document.getElementById('subject').value.trim();
-            const recipient = document.getElementById('recipient').value.trim();
-            const content = document.getElementById('content').value.trim();
+      // 📝 GENERACIÓN DE DOCUMENTOS - VERSIÓN CORREGIDA
+function generateDocument() {
+    const type = document.getElementById('documentType').value;
+    const department = document.getElementById('department').value;
+    const subject = document.getElementById('subject').value.trim();
+    const recipient = document.getElementById('recipient').value.trim();
+    const content = document.getElementById('content').value.trim();
 
-            if (!type || !department || !subject) {
-                showAlert('Complete los campos obligatorios (Tipo, Departamento y Asunto)', 'error');
-                return;
+    if (!type || !department || !subject) {
+        showAlert('Complete los campos obligatorios (Tipo, Departamento y Asunto)', 'error');
+        return;
+    }
+
+    console.log('📄 Generando documento...');
+    updateStatus('🔄 Generando documento...', 'info');
+
+    const currentYear = new Date().getFullYear();
+
+    // CONSULTA CORREGIDA: Buscar documentos del mismo tipo, departamento y año
+    supabaseClient
+        .from('documents')
+        .select('document_number')
+        .eq('document_type', type)
+        .eq('department', department)
+        .gte('created_date', `${currentYear}-01-01`)
+        .lt('created_date', `${currentYear + 1}-01-01`)
+        .then(({ data: existingDocs, error }) => {
+            console.log('=== DEBUG GENERACIÓN DOCUMENTO ===');
+            console.log('Tipo:', type);
+            console.log('Departamento:', department);
+            console.log('Año:', currentYear);
+            console.log('Error de consulta:', error);
+            console.log('Documentos encontrados:', existingDocs);
+
+            if (error) {
+                console.error('Error en consulta:', error);
+                throw error;
             }
 
-            console.log('📄 Generando documento...');
-            updateStatus('🔄 Generando documento...', 'info');
-
-            const currentYear = new Date().getFullYear();
-
-            // Obtener próximo número consecutivo
-            supabaseClient
-                .from('documents')
-                .select('document_number')
-                .eq('document_type', type)
-                .eq('department', department)
-                .like('document_number', `%-${department}-${currentYear}%`)
-                .then(({ data: existingDocs, error }) => {
-                    if (error) throw error;
-
-                    // Extraer números existentes y encontrar el siguiente disponible
-                    // Extraer números existentes y encontrar el siguiente disponible
-const existingNumbers = [];
-if (existingDocs && existingDocs.length > 0) {
-    existingDocs.forEach(doc => {
-        // Buscar patrón para formato anterior: 001-GGE-2025
-        const oldFormatMatch = doc.document_number.match(/(\d+)-/);
-        // Buscar patrón para formato nuevo: GGE-001-2025
-        const newFormatMatch = doc.document_number.match(/-(\d+)-/);
-        
-        if (newFormatMatch) {
-            // Si encuentra el formato nuevo (GGE-001-2025)
-            existingNumbers.push(parseInt(newFormatMatch[1]));
-        } else if (oldFormatMatch) {
-            // Si encuentra el formato anterior (001-GGE-2025)
-            existingNumbers.push(parseInt(oldFormatMatch[1]));
-        }
-    });
-}
-
-                    existingNumbers.sort((a, b) => a - b);
-
-                    // Encontrar el primer hueco o el siguiente número
-                    let nextNumber = 1;
-                    for (let i = 0; i < existingNumbers.length; i++) {
-                        if (existingNumbers[i] !== nextNumber) {
-                            break;
-                        }
-                        nextNumber++;
+            // Extraer números existentes del formato: DEPT-NNN-YEAR
+            const existingNumbers = [];
+            if (existingDocs && existingDocs.length > 0) {
+                console.log('Procesando documentos existentes...');
+                existingDocs.forEach(doc => {
+                    console.log('Procesando documento:', doc.document_number);
+                    
+                    // SOLO formato: DEPT-NNN-YEAR (ejemplo: GGE-001-2025)
+                    const pattern = new RegExp(`${department}-(\\d+)-${currentYear}`);
+                    const match = doc.document_number.match(pattern);
+                    
+                    if (match) {
+                        existingNumbers.push(parseInt(match[1]));
+                        console.log(`✅ Número extraído: ${match[1]} de ${doc.document_number}`);
+                    } else {
+                        console.log(`❌ No match para: ${doc.document_number} (formato esperado: ${department}-NNN-${currentYear})`);
                     }
-
-                    // Determinar prefijo según tipo
-                    let prefix;
-                    switch (type) {
-                        case 'oficio': prefix = 'Oficio No.'; break;
-                        case 'memorando': prefix = 'Memorando No.'; break;
-                        case 'orden_compra': prefix = 'Orden de Compra No.'; break;
-                        case 'proforma': prefix = 'Proforma No.'; break;
-                        case 'acta_entrega_externa': prefix = 'Acta de Entrega-Recepción Externa No.'; break;
-                        case 'acta_entrega_interna': prefix = 'Acta de Entrega-Recepción Interna No.'; break;
-                        case 'acta_reunion': prefix = 'Acta de Reunión No.'; break;
-                        case 'informe_tecnico': prefix = 'Informe Técnico No.'; break;
-                        case 'informe_viaticos': prefix = 'Informe de Viáticos No.'; break;
-                        default: prefix = 'Documento No.';
-                    }
-
-                    const documentNumber = `${prefix} ${department}-${nextNumber.toString().padStart(3, '0')}-${currentYear}`;
-
-                    // Crear objeto de documento
-                    currentDocumentData = {
-                        document_number: documentNumber,
-                        document_type: type,
-                        department: department,
-                        subject: subject,
-                        recipient: recipient || null,
-                        content: content || null,
-                        created_by: currentUser.username,
-                        created_by_role: currentUser.role,
-                        status: 'Activo'
-                    };
-
-                    // Generar vista previa
-                    const preview = generateDocumentPreview(currentDocumentData);
-                    document.getElementById('documentPreview').innerHTML = preview;
-                    document.getElementById('previewCard').classList.remove('hidden');
-
-                    console.log('✅ Vista previa generada');
-                    updateStatus('🟢 Documento generado - Revise la vista previa', 'success');
-                })
-                .catch(error => {
-                    console.error('❌ Error generando documento:', error);
-                    showAlert('Error generando documento: ' + error.message, 'error');
-                    updateStatus('🔴 Error generando documento', 'error');
                 });
-        }
+            } else {
+                console.log('No hay documentos existentes para este tipo y departamento');
+            }
+
+            console.log('Números existentes extraídos:', existingNumbers);
+
+            // Ordenar números y encontrar el siguiente disponible
+            existingNumbers.sort((a, b) => a - b);
+            console.log('Números ordenados:', existingNumbers);
+
+            // Encontrar el siguiente número disponible
+            let nextNumber = 1;
+            for (let i = 0; i < existingNumbers.length; i++) {
+                if (existingNumbers[i] === nextNumber) {
+                    nextNumber++;
+                } else {
+                    // Hay un hueco, usar el número actual
+                    break;
+                }
+            }
+
+            console.log('Próximo número a asignar:', nextNumber);
+
+            // Determinar prefijo según tipo
+            let prefix;
+            switch (type) {
+                case 'oficio': prefix = 'Oficio No.'; break;
+                case 'memorando': prefix = 'Memorando No.'; break;
+                case 'orden_compra': prefix = 'Orden de Compra No.'; break;
+                case 'proforma': prefix = 'Proforma No.'; break;
+                case 'acta_entrega_externa': prefix = 'Acta de Entrega-Recepción Externa No.'; break;
+                case 'acta_entrega_interna': prefix = 'Acta de Entrega-Recepción Interna No.'; break;
+                case 'acta_reunion': prefix = 'Acta de Reunión No.'; break;
+                case 'informe_tecnico': prefix = 'Informe Técnico No.'; break;
+                case 'informe_viaticos': prefix = 'Informe de Viáticos No.'; break;
+                default: prefix = 'Documento No.';
+            }
+
+            console.log('Prefijo determinado:', prefix);
+
+            // FORMATO: Prefijo + Departamento-Número-Año
+            const documentNumber = `${prefix} ${department}-${nextNumber.toString().padStart(3, '0')}-${currentYear}`;
+            
+            console.log('Número de documento final:', documentNumber);
+            console.log('=== FIN DEBUG ===');
+
+            // Crear objeto de documento
+            currentDocumentData = {
+                document_number: documentNumber,
+                document_type: type,
+                department: department,
+                subject: subject,
+                recipient: recipient || null,
+                content: content || null,
+                created_by: currentUser.username,
+                created_by_role: currentUser.role,
+                status: 'Activo'
+            };
+
+            console.log('currentDocumentData creado:', currentDocumentData);
+
+            // Generar vista previa
+            const preview = generateDocumentPreview(currentDocumentData);
+            document.getElementById('documentPreview').innerHTML = preview;
+            document.getElementById('previewCard').classList.remove('hidden');
+
+            console.log('✅ Vista previa generada');
+            updateStatus('🟢 Documento generado - Revise la vista previa', 'success');
+        })
+        .catch(error => {
+            console.error('❌ Error completo generando documento:', error);
+            console.error('Stack trace:', error.stack);
+            showAlert('Error generando documento: ' + error.message, 'error');
+            updateStatus('🔴 Error generando documento', 'error');
+        });
+}
 
         function generateDocumentPreview(docData) {
             const currentDate = new Date().toLocaleDateString('es-ES', {
