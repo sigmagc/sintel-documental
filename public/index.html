@@ -13,7 +13,526 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        // 📝 GENERACIÓN DE DOCUMENTOS
+        function generateDocument() {
+            const type = document.getElementById('documentType').value;
+            const department = document.getElementById('department').value;
+            const subject = document.getElementById('subject').value.trim();
+            const createdBy = document.getElementById('createdBy').value.trim();
+            const recipient = document.getElementById('recipient').value.trim();
+            const content = document.getElementById('content').value.trim();
+
+            if (!type || !department || !subject || !createdBy) {
+                showAlert('Complete los campos obligatorios (Tipo, Departamento, Asunto y Creado por)', 'error');
+                return;
+            }
+
+            console.log('📄 Generando documento...');
+            updateStatus('🔄 Generando documento...', 'info');
+
+            const currentYear = new Date().getFullYear();
+
+            supabaseClient
+                .from('documents')
+                .select('document_number')
+                .eq('document_type', type)
+                .eq('department', department)
+                .gte('created_date', `${currentYear}-01-01`)
+                .lt('created_date', `${currentYear + 1}-01-01`)
+                .then(({ data: existingDocs, error }) => {
+                    if (error) {
+                        console.error('Error en consulta:', error);
+                        throw error;
+                    }
+
+                    const existingNumbers = [];
+                    if (existingDocs && existingDocs.length > 0) {
+                        existingDocs.forEach(doc => {
+                            const pattern = new RegExp(`${department}-(\\d+)-${currentYear}`);
+                            const match = doc.document_number.match(pattern);
+                            
+                            if (match) {
+                                existingNumbers.push(parseInt(match[1]));
+                            }
+                        });
+                    }
+
+                    existingNumbers.sort((a, b) => a - b);
+
+                    let nextNumber = 1;
+                    for (let i = 0; i < existingNumbers.length; i++) {
+                        if (existingNumbers[i] === nextNumber) {
+                            nextNumber++;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    let prefix;
+                    switch (type) {
+                        case 'oficio': prefix = 'Oficio No.'; break;
+                        case 'memorando': prefix = 'Memorando No.'; break;
+                        case 'orden_compra': prefix = 'Orden de Compra No.'; break;
+                        case 'proforma': prefix = 'Proforma No.'; break;
+                        case 'acta_entrega_externa': prefix = 'Acta de Entrega-Recepción Externa No.'; break;
+                        case 'acta_entrega_interna': prefix = 'Acta de Entrega-Recepción Interna No.'; break;
+                        case 'acta_reunion': prefix = 'Acta de Reunión No.'; break;
+                        case 'informe_tecnico': prefix = 'Informe Técnico No.'; break;
+                        case 'informe_viaticos': prefix = 'Informe de Viáticos No.'; break;
+                        default: prefix = 'Documento No.';
+                    }
+
+                    const documentNumber = `${prefix} ${department}-${nextNumber.toString().padStart(3, '0')}-${currentYear}`;
+
+                    currentDocumentData = {
+                        document_number: documentNumber,
+                        document_type: type,
+                        department: department,
+                        subject: subject,
+                        created_by: createdBy,
+                        recipient: recipient || null,
+                        content: content || null,
+                        created_by_username: currentUser.username,
+                        created_by_role: currentUser.role,
+                        status: 'Activo'
+                    };
+
+                    const preview = generateDocumentPreview(currentDocumentData);
+                    document.getElementById('documentPreview').innerHTML = preview;
+                    document.getElementById('previewCard').classList.remove('hidden');
+
+                    updateStatus('🟢 Documento generado - Revise la vista previa', 'success');
+                })
+                .catch(error => {
+                    console.error('❌ Error generando documento:', error);
+                    showAlert('Error generando documento: ' + error.message, 'error');
+                    updateStatus('🔴 Error generando documento', 'error');
+                });
         }
+
+        function generateDocumentPreview(docData) {
+            const currentDate = new Date().toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            return `
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px; background: white; color: black; border-radius: 8px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h2 style="color: #092947; margin-bottom: 10px;">${docData.document_number}</h2>
+                        <p style="margin: 0; color: #666;"><strong>Fecha:</strong> ${currentDate}</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <p style="margin: 5px 0;"><strong>Tipo:</strong> ${getDocumentTypeName(docData.document_type)}</p>
+                        <p style="margin: 5px 0;"><strong>Departamento:</strong> ${getDepartmentName(docData.department)}</p>
+                        <p style="margin: 5px 0;"><strong>Creado por:</strong> ${docData.created_by}</p>
+                        ${docData.recipient ? `<p style="margin: 5px 0;"><strong>Destinatario:</strong> ${docData.recipient}</p>` : ''}
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <p style="margin: 5px 0;"><strong>Asunto:</strong> ${docData.subject}</p>
+                    </div>
+                    
+                    ${docData.content ? `
+                        <div style="margin-bottom: 20px;">
+                            <p style="margin: 5px 0;"><strong>Contenido:</strong></p>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px;">
+                                ${docData.content.replace(/\n/g, '<br>')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
+                        <p style="margin: 5px 0;"><strong>Estado:</strong> ${docData.status}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveDocument() {
+            if (!currentDocumentData) {
+                showAlert('No hay documento para guardar', 'error');
+                return;
+            }
+
+            console.log('💾 Guardando documento...');
+            updateStatus('🔄 Guardando documento...', 'info');
+
+            supabaseClient
+                .from('documents')
+                .insert(currentDocumentData)
+                .select()
+                .then(({ data, error }) => {
+                    if (error) throw error;
+
+                    console.log('✅ Documento guardado:', data);
+                    showAlert(`✅ Documento ${currentDocumentData.document_number} guardado exitosamente`, 'success');
+                    updateStatus('🟢 Documento guardado correctamente', 'success');
+
+                    clearForm();
+                    clearPreview();
+                    loadSystemData();
+                })
+                .catch(error => {
+                    console.error('❌ Error guardando documento:', error);
+                    showAlert('Error guardando documento: ' + error.message, 'error');
+                    updateStatus('🔴 Error guardando documento', 'error');
+                });
+        }
+
+        // 🔍 FILTROS Y BÚSQUEDAS
+        function applyFilters() {
+            const typeFilter = document.getElementById('filterType').value;
+            const deptFilter = document.getElementById('filterDepartment').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            
+            let filteredDocuments = allDocuments;
+            
+            if (typeFilter) {
+                filteredDocuments = filteredDocuments.filter(doc => doc.document_type === typeFilter);
+            }
+            
+            if (deptFilter) {
+                filteredDocuments = filteredDocuments.filter(doc => doc.department === deptFilter);
+            }
+            
+            if (searchTerm) {
+                filteredDocuments = filteredDocuments.filter(doc =>
+                    doc.document_number.toLowerCase().includes(searchTerm) ||
+                    doc.subject.toLowerCase().includes(searchTerm) ||
+                    (doc.recipient && doc.recipient.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            updateHistoryTable(filteredDocuments);
+            updateHistoryInfo(filteredDocuments.length);
+        }
+
+        function exportHistory() {
+            if (!allDocuments || allDocuments.length === 0) {
+                showAlert('No hay documentos para exportar', 'warning');
+                return;
+            }
+            
+            try {
+                const exportData = allDocuments.map(doc => ({
+                    'Número': doc.document_number,
+                    'Tipo': getDocumentTypeName(doc.document_type),
+                    'Departamento': getDepartmentName(doc.department),
+                    'Asunto': doc.subject,
+                    'Creado por': doc.created_by || 'No especificado',
+                    'Destinatario': doc.recipient || 'No especificado',
+                    'Fecha': new Date(doc.created_date).toLocaleString('es-ES'),
+                    'Estado': doc.status
+                }));
+                
+                const headers = Object.keys(exportData[0]);
+                const csvContent = [
+                    headers.join(','),
+                    ...exportData.map(row => 
+                        headers.map(header => `"${row[header] || ''}"`).join(',')
+                    )
+                ].join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `SINTEL_Documentos_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showAlert('📊 Archivo CSV exportado exitosamente', 'success');
+                updateStatus('🟢 Historial exportado correctamente', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error exportando:', error);
+                showAlert('Error exportando datos: ' + error.message, 'error');
+            }
+        }
+
+        // 👁️ VISUALIZACIÓN DE DOCUMENTOS
+        function viewDocument(documentId) {
+            const doc = allDocuments.find(d => d.id === documentId);
+            if (!doc) {
+                showAlert('Documento no encontrado', 'error');
+                return;
+            }
+            
+            const preview = generateDocumentPreview(doc);
+            const date = new Date(doc.created_date).toLocaleString('es-ES');
+            
+            const modal = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;" onclick="this.remove()">
+                    <div style="background: white; border-radius: 10px; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative;" onclick="event.stopPropagation()">
+                        <div style="position: sticky; top: 0; background: #092947; color: white; padding: 15px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="margin: 0;">📄 Detalles del Documento</h3>
+                            <button onclick="this.closest('[style*=\"position: fixed\"]').remove()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">×</button>
+                        </div>
+                        <div style="padding: 20px;">
+                            ${preview}
+                            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
+                                <p><strong>ID del documento:</strong> ${doc.id}</p>
+                                <p><strong>Fecha de creación:</strong> ${date}</p>
+                                <p><strong>Estado:</strong> ${doc.status}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modal);
+        }
+
+        // 🗑️ FUNCIONES DE ADMINISTRACIÓN
+        function deleteDocument(documentId, documentNumber) {
+            if (!currentUser || currentUser.role !== 'Administrador') {
+                showAlert('No tiene permisos para esta acción', 'error');
+                return;
+            }
+            
+            const confirmation = confirm(
+                `¿Está seguro de eliminar el documento "${documentNumber}"?\n\n` +
+                'Esta acción eliminará el documento permanentemente.'
+            );
+            
+            if (!confirmation) return;
+            
+            console.log('🗑️ Eliminando documento:', documentNumber);
+            
+            supabaseClient
+                .from('documents')
+                .delete()
+                .eq('id', documentId)
+                .then(({ error }) => {
+                    if (error) throw error;
+
+                    showAlert(`✅ Documento ${documentNumber} eliminado correctamente`, 'success');
+                    updateStatus('🟢 Documento eliminado correctamente', 'success');
+                    loadSystemData();
+                })
+                .catch(error => {
+                    console.error('❌ Error eliminando documento:', error);
+                    showAlert('Error eliminando documento: ' + error.message, 'error');
+                    updateStatus('🔴 Error eliminando documento', 'error');
+                });
+        }
+
+        function deleteAllDocuments() {
+            if (!currentUser || currentUser.role !== 'Administrador') {
+                showAlert('No tiene permisos para esta acción', 'error');
+                return;
+            }
+            
+            const confirmation = confirm(
+                '⚠️ ¿Está COMPLETAMENTE SEGURO de eliminar TODOS los documentos?\n\n' +
+                'Esta acción eliminará permanentemente todos los documentos del sistema.\n' +
+                'Esta acción NO se puede deshacer.'
+            );
+            
+            if (!confirmation) return;
+            
+            const secondConfirmation = prompt(
+                'Para confirmar la eliminación de TODOS los documentos, escriba: ELIMINAR TODO'
+            );
+            
+            if (secondConfirmation !== 'ELIMINAR TODO') {
+                showAlert('Operación cancelada - Confirmación incorrecta', 'warning');
+                return;
+            }
+            
+            console.log('🗑️ Eliminando todos los documentos...');
+            updateStatus('🔄 Eliminando todos los documentos...', 'info');
+
+            supabaseClient
+                .from('documents')
+                .delete()
+                .neq('id', 0)
+                .then(({ error }) => {
+                    if (error) throw error;
+
+                    showAlert('✅ Todos los documentos han sido eliminados', 'success');
+                    updateStatus('🟢 Todos los documentos eliminados', 'success');
+                    
+                    loadSystemData();
+                })
+                .catch(error => {
+                    console.error('❌ Error eliminando documentos:', error);
+                    showAlert('Error eliminando documentos: ' + error.message, 'error');
+                    updateStatus('🔴 Error eliminando documentos', 'error');
+                });
+        }
+
+        function resetCounters() {
+            if (!currentUser || currentUser.role !== 'Administrador') {
+                showAlert('No tiene permisos para esta acción', 'error');
+                return;
+            }
+            
+            const department = document.getElementById('resetDepartment').value;
+            const type = document.getElementById('resetType').value;
+            
+            if (!department && !type) {
+                deleteAllDocuments();
+                return;
+            } else {
+                if (!department || !type) {
+                    showAlert('Para reiniciar un contador específico, seleccione tanto departamento como tipo', 'error');
+                    return;
+                }
+                
+                const confirmation = confirm(
+                    `¿Reiniciar contador para ${department} - ${type}?\n\n` +
+                    'Esto eliminará todos los documentos de este tipo y departamento.'
+                );
+                
+                if (!confirmation) return;
+            }
+            
+            console.log('🔄 Reiniciando contadores específicos...');
+            updateStatus('🔄 Reiniciando contadores específicos...', 'info');
+            
+            supabaseClient
+                .from('documents')
+                .delete()
+                .eq('document_type', type)
+                .eq('department', department)
+                .then(({ error }) => {
+                    if (error) throw error;
+
+                    showAlert(`✅ Contador para ${department} - ${type} reiniciado`, 'success');
+                    updateStatus('🟢 Contador específico reiniciado', 'success');
+                    
+                    loadSystemData();
+                })
+                .catch(error => {
+                    console.error('❌ Error reiniciando contadores:', error);
+                    showAlert('Error reiniciando contadores: ' + error.message, 'error');
+                    updateStatus('🔴 Error reiniciando contadores', 'error');
+                });
+        }
+
+        // 🧭 NAVEGACIÓN
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            event.target.classList.add('active');
+            
+            if (tabName === 'history' && allDocuments.length === 0) {
+                loadHistory();
+            } else if (tabName === 'counters' && currentUser.role === 'Administrador') {
+                loadDetailedCounters();
+            }
+        }
+
+        // 🔧 FUNCIONES AUXILIARES
+        function clearForm() {
+            document.getElementById('documentType').value = '';
+            document.getElementById('department').value = '';
+            document.getElementById('subject').value = '';
+            document.getElementById('createdBy').value = '';
+            document.getElementById('recipient').value = '';
+            document.getElementById('content').value = '';
+        }
+
+        function clearPreview() {
+            document.getElementById('previewCard').classList.add('hidden');
+            currentDocumentData = null;
+        }
+
+        function refreshSystem() {
+            console.log('🔄 Actualizando sistema...');
+            updateStatus('🔄 Actualizando datos...', 'info');
+            
+            loadSystemData();
+            showAlert('Sistema actualizado correctamente', 'success');
+        }
+
+        function handleLogout() {
+            console.log('🚪 Cerrando sesión...');
+            
+            const confirmation = confirm('¿Está seguro de que desea cerrar sesión?');
+            if (!confirmation) return;
+            
+            currentUser = null;
+            allDocuments = [];
+            currentDocumentData = null;
+            
+            clearForm();
+            clearPreview();
+            
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterDepartment').value = '';
+            document.getElementById('searchInput').value = '';
+            
+            document.getElementById('countersTab').style.display = 'none';
+            
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            hideLoginError();
+            
+            updateStatus('🔄 Sesión cerrada correctamente', 'info');
+            console.log('✅ Sesión cerrada correctamente');
+        }
+
+        // 🎯 EVENT LISTENERS
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 Configurando eventos del sistema...');
+            
+            const usernameField = document.getElementById('username');
+            const passwordField = document.getElementById('password');
+            
+            if (usernameField) {
+                usernameField.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        passwordField.focus();
+                    }
+                });
+            }
+            
+            if (passwordField) {
+                passwordField.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleLogin();
+                    }
+                });
+            }
+            
+            console.log('✅ Eventos configurados correctamente');
+        });
+
+        // 🚀 INICIALIZACIÓN FINAL
+        window.addEventListener('load', function() {
+            console.log('🌐 Sistema SINTEL cargado completamente');
+            
+            try {
+                updateStatus('🟢 Sistema SINTEL inicializado correctamente', 'success');
+                console.log('✅ Inicialización exitosa');
+            } catch (error) {
+                console.error('❌ Error en inicialización:', error);
+                updateStatus('🔴 Error en inicialización: ' + error.message, 'error');
+            }
+        });
+
+        console.log('✅ SINTEL - Todos los scripts cargados exitosamente');
+    </script>
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -2053,3 +2572,4 @@
                         Última actualización: ${new Date().toLocaleString('es-ES')}
                     </div>
                 </div>
+                
