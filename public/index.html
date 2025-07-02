@@ -1091,6 +1091,65 @@
                 });
         }
 
+        // 🖥️ ACTUALIZACIÓN DE HISTORIAL
+        function updateHistoryTable(documents) {
+            const tbody = document.getElementById('historyTable');
+            
+            if (!documents || documents.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
+                            <div>No hay documentos para mostrar</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            documents.forEach(doc => {
+                const row = tbody.insertRow();
+                const date = new Date(doc.created_date).toLocaleString('es-ES');
+                
+                row.innerHTML = `
+                    <td><strong>${doc.document_number}</strong></td>
+                    <td><span style="background: rgba(251,176,64,0.2); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${getDocumentTypeName(doc.document_type)}</span></td>
+                    <td><span style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${doc.department}</span></td>
+                    <td>${doc.subject}</td>
+                    <td>${doc.created_by || 'No especificado'}</td>
+                    <td>${doc.recipient || 'No especificado'}</td>
+                    <td><small>${date}</small></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-small" onclick="viewDocument(${doc.id})" title="Ver detalles">
+                                👁️
+                            </button>
+                            ${currentUser && currentUser.role === 'Administrador' ? `
+                                <button class="btn btn-danger btn-small" onclick="deleteDocument(${doc.id}, '${doc.document_number}')" title="Eliminar">
+                                    🗑️
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
+            });
+        }
+
+        function updateHistoryInfo(totalCount) {
+            const info = document.getElementById('historyInfo');
+            info.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                    <div>
+                        <strong>📊 Total de documentos:</strong> ${totalCount}
+                    </div>
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.7);">
+                        Última actualización: ${new Date().toLocaleString('es-ES')}
+                    </div>
+                </div>
+            `;
+        }
+
         function loadMainCounters() {
             return supabaseClient
                 .from('documents')
@@ -1768,52 +1827,7 @@
                 });
         }
 
-        // 🖥️ ACTUALIZACIÓN DE INTERFAZ - SOLO MODIFICAMOS LA TABLA DEL HISTORIAL
-        function updateHistoryTable(documents) {
-            const tbody = document.getElementById('historyTable');
-            
-            if (!documents || documents.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
-                            <div>No hay documentos para mostrar</div>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            tbody.innerHTML = '';
-            documents.forEach(doc => {
-                const row = tbody.insertRow();
-                const date = new Date(doc.created_date).toLocaleString('es-ES');
-                
-                row.innerHTML = `
-                    <td><strong>${doc.document_number}</strong></td>
-                    <td><span style="background: rgba(251,176,64,0.2); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${getDocumentTypeName(doc.document_type)}</span></td>
-                    <td><span style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${doc.department}</span></td>
-                    <td>${doc.subject}</td>
-                    <td>${doc.created_by || 'No especificado'}</td>
-                    <td>${doc.recipient || 'No especificado'}</td>
-                    <td><small>${date}</small></td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn btn-small" onclick="viewDocument(${doc.id})" title="Ver detalles">
-                                👁️
-                            </button>
-                            ${currentUser && currentUser.role === 'Administrador' ? `
-                                <button class="btn btn-danger btn-small" onclick="deleteDocument(${doc.id}, '${doc.document_number}')" title="Eliminar">
-                                    🗑️
-                                </button>
-                            ` : ''}
-                        </div>
-                    </td>
-                `;
-            });
-        }
-
-        // RESTO DE FUNCIONES ORIGINALES SIN CAMBIOS
+        // 🖥️ ACTUALIZACIÓN DE INTERFAZ
         function updateMainCountersDisplay(counters, currentYear) {
             const container = document.getElementById('mainCountersDisplay');
             
