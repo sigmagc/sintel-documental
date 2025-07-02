@@ -1182,6 +1182,84 @@
                 });
         }
 
+        // 🖥️ FUNCIÓN DE ACTUALIZACIÓN DE CONTADORES PRINCIPALES
+        function updateMainCountersDisplay(counters, currentYear) {
+            const container = document.getElementById('mainCountersDisplay');
+            
+            if (!counters || counters.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
+                        <div>No hay documentos registrados</div>
+                        <div style="font-size: 0.9em; margin-top: 5px;">Cree su primer documento para ver los contadores</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            const currentYearCounters = counters.filter(c => c.year === currentYear);
+            const departmentGroups = {};
+            
+            currentYearCounters.forEach(counter => {
+                if (!departmentGroups[counter.department]) {
+                    departmentGroups[counter.department] = [];
+                }
+                departmentGroups[counter.department].push(counter);
+            });
+            
+            let html = `
+                <div style="margin-bottom: 20px; text-align: center;">
+                    <h3 style="color: #FBB040; margin: 0;">📅 Contadores del Año ${currentYear}</h3>
+                </div>
+            `;
+            
+            if (Object.keys(departmentGroups).length === 0) {
+                html += `
+                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
+                        <div>No hay documentos creados en ${currentYear}</div>
+                        <div style="font-size: 0.9em; margin-top: 5px;">Los contadores aparecerán aquí cuando cree documentos</div>
+                    </div>
+                `;
+            } else {
+                html += '<div class="counters-grid">';
+                
+                Object.keys(departmentGroups).sort().forEach(dept => {
+                    const deptCounters = departmentGroups[dept];
+                    const totalDept = deptCounters.reduce((sum, c) => sum + c.counter, 0);
+                    
+                    html += `
+                        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border-left: 4px solid #FBB040;">
+                            <h4 style="color: #FBB040; margin: 0 0 15px 0; display: flex; justify-content: space-between; align-items: center;">
+                                <span>🏢 ${getDepartmentName(dept)}</span>
+                                <span style="font-size: 24px; font-weight: bold;">${totalDept}</span>
+                            </h4>
+                            <div style="display: grid; gap: 8px;">
+                    `;
+                    
+                    deptCounters
+                        .sort((a, b) => getDocumentTypeName(a.document_type).localeCompare(getDocumentTypeName(b.document_type)))
+                        .forEach(counter => {
+                            html += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 5px;">
+                                    <span style="font-size: 13px;">${getDocumentTypeName(counter.document_type)}</span>
+                                    <span style="font-weight: bold; color: #FBB040;">${counter.counter}</span>
+                                </div>
+                            `;
+                        });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+            
+            container.innerHTML = html;
+        }
+
         function loadDetailedCounters() {
             return supabaseClient
                 .from('documents')
