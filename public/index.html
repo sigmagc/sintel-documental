@@ -644,7 +644,7 @@
             `;
         }
 
-        // FUNCIÓN GUARDAR - VERSIÓN SIMPLIFICADA PARA EVITAR ERRORES
+        // FUNCIÓN GUARDAR - CORREGIDA PARA INCLUIR TODOS LOS CAMPOS REQUERIDOS
         function saveDocument() {
             if (!currentDocumentData) {
                 showAlert('No hay documento para guardar', 'error');
@@ -655,19 +655,20 @@
             console.log('Datos a guardar:', currentDocumentData);
             updateStatus('🔄 Guardando documento...', 'info');
 
-            // Crear objeto simplificado con solo los campos básicos
+            // Crear objeto con TODOS los campos requeridos por la base de datos
             const documentToSave = {
                 document_number: currentDocumentData.document_number,
                 document_type: currentDocumentData.document_type,
                 department: currentDocumentData.department,
                 subject: currentDocumentData.subject,
                 created_by: currentDocumentData.created_by,
+                created_by_role: currentUser ? currentUser.role : 'Usuario', // CAMPO REQUERIDO
                 recipient: currentDocumentData.recipient,
                 content: currentDocumentData.content,
                 status: currentDocumentData.status || 'Activo'
             };
 
-            console.log('Documento simplificado:', documentToSave);
+            console.log('Documento con todos los campos:', documentToSave);
 
             supabaseClient
                 .from('documents')
