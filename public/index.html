@@ -644,7 +644,7 @@
             `;
         }
 
-        // FUNCIÓN GUARDAR - SIN CAMBIOS
+        // FUNCIÓN GUARDAR - VERSIÓN SIMPLIFICADA PARA EVITAR ERRORES
         function saveDocument() {
             if (!currentDocumentData) {
                 showAlert('No hay documento para guardar', 'error');
@@ -652,17 +652,36 @@
             }
 
             console.log('💾 Guardando documento...');
+            console.log('Datos a guardar:', currentDocumentData);
             updateStatus('🔄 Guardando documento...', 'info');
+
+            // Crear objeto simplificado con solo los campos básicos
+            const documentToSave = {
+                document_number: currentDocumentData.document_number,
+                document_type: currentDocumentData.document_type,
+                department: currentDocumentData.department,
+                subject: currentDocumentData.subject,
+                created_by: currentDocumentData.created_by,
+                recipient: currentDocumentData.recipient,
+                content: currentDocumentData.content,
+                status: currentDocumentData.status || 'Activo'
+            };
+
+            console.log('Documento simplificado:', documentToSave);
 
             supabaseClient
                 .from('documents')
-                .insert(currentDocumentData)
-                .select()
+                .insert(documentToSave)
                 .then(({ data, error }) => {
-                    if (error) throw error;
+                    console.log('Respuesta de Supabase:', { data, error });
+                    
+                    if (error) {
+                        console.error('Error detallado:', error);
+                        throw error;
+                    }
 
-                    console.log('✅ Documento guardado:', data);
-                    showAlert(`✅ Documento ${currentDocumentData.document_number} guardado exitosamente`, 'success');
+                    console.log('✅ Documento guardado exitosamente');
+                    showAlert(`✅ Documento ${documentToSave.document_number} guardado exitosamente`, 'success');
                     updateStatus('🟢 Documento guardado correctamente', 'success');
 
                     clearForm();
@@ -670,8 +689,19 @@
                     loadSystemData();
                 })
                 .catch(error => {
-                    console.error('❌ Error guardando documento:', error);
-                    showAlert('Error guardando documento: ' + error.message, 'error');
+                    console.error('❌ Error completo guardando documento:', error);
+                    console.error('Tipo de error:', typeof error);
+                    console.error('Error message:', error.message);
+                    console.error('Error details:', error.details);
+                    
+                    let errorMessage = 'Error desconocido';
+                    if (error.message) {
+                        errorMessage = error.message;
+                    } else if (typeof error === 'string') {
+                        errorMessage = error;
+                    }
+                    
+                    showAlert('Error guardando documento: ' + errorMessage, 'error');
                     updateStatus('🔴 Error guardando documento', 'error');
                 });
         }
