@@ -1255,21 +1255,17 @@
                     if (existingDocs && existingDocs.length > 0) {
                         existingDocs.forEach(doc => {
                             // Patrón ESPECÍFICO para el formato correcto: DEPT-XXX-YEAR
-                            const correctPattern = new RegExp(`${department}-(\\d{3})-${currentYear}`);
+                            const correctPattern = new RegExp(`${department}-(\\d+)-${currentYear}`);
                             const match = doc.document_number.match(correctPattern);
                             
                             if (match) {
                                 existingNumbers.push(parseInt(match[1]));
-                                console.log('✅ Número válido encontrado:', match[1]);
-                            } else {
-                                console.log('⚠️ Formato ignorado:', doc.document_number);
                             }
                         });
                     }
 
                     // Ordenar números existentes
                     existingNumbers.sort((a, b) => a - b);
-                    console.log('📊 Números existentes:', existingNumbers);
 
                     // Encontrar el siguiente número disponible
                     let nextNumber = 1;
