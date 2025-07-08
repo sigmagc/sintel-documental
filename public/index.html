@@ -1545,7 +1545,7 @@
                 });
         }
 
-        // 🗑️ ELIMINACIÓN DE DOCUMENTOS
+        // 🗑️ ELIMINACIÓN DE DOCUMENTOS - CORREGIDO PARA MANTENER FORMATO
         function deleteDocument(documentId, documentNumber) {
             if (!currentUser || currentUser.role !== 'Administrador') {
                 showAlert('No tiene permisos para esta acción', 'error');
@@ -1578,13 +1578,9 @@
                         .then(({ error: deleteError }) => {
                             if (deleteError) throw deleteError;
 
+                            // REORGANIZACIÓN MANUAL CON FORMATO CORRECTO
                             const year = new Date(docData.created_date).getFullYear();
-                            
-                            return supabaseClient.rpc('reorganize_document_numbers', {
-                                doc_type: docData.document_type,
-                                dept: docData.department,
-                                doc_year: year
-                            });
+                            return reorganizeDocumentNumbers(docData.document_type, docData.department, year);
                         });
                 })
                 .then(() => {
@@ -1596,6 +1592,61 @@
                     console.error('❌ Error eliminando documento:', error);
                     showAlert('Error eliminando documento: ' + error.message, 'error');
                     updateStatus('🔴 Error eliminando documento', 'error');
+                });
+        }
+
+        // 📝 FUNCIÓN DE REORGANIZACIÓN MANUAL CON FORMATO CORRECTO
+        function reorganizeDocumentNumbers(documentType, department, year) {
+            console.log('🔄 Reorganizando numeración con formato correcto...');
+            
+            return supabaseClient
+                .from('documents')
+                .select('id, document_number, created_date')
+                .eq('document_type', documentType)
+                .eq('department', department)
+                .gte('created_date', `${year}-01-01`)
+                .lt('created_date', `${year + 1}-01-01`)
+                .order('created_date', { ascending: true })
+                .then(({ data: documents, error }) => {
+                    if (error) throw error;
+                    
+                    if (!documents || documents.length === 0) {
+                        console.log('✅ No hay documentos para reorganizar');
+                        return;
+                    }
+
+                    // Obtener prefijo correcto
+                    let prefix;
+                    switch (documentType) {
+                        case 'oficio': prefix = 'Oficio No.'; break;
+                        case 'memorando': prefix = 'Memorando No.'; break;
+                        case 'orden_compra': prefix = 'Orden de Compra No.'; break;
+                        case 'proforma': prefix = 'Proforma No.'; break;
+                        case 'acta_entrega_externa': prefix = 'Acta de Entrega-Recepción Externa No.'; break;
+                        case 'acta_entrega_interna': prefix = 'Acta de Entrega-Recepción Interna No.'; break;
+                        case 'acta_reunion': prefix = 'Acta de Reunión No.'; break;
+                        case 'informe_tecnico': prefix = 'Informe Técnico No.'; break;
+                        case 'informe_viaticos': prefix = 'Informe de Viáticos No.'; break;
+                        default: prefix = 'Documento No.';
+                    }
+
+                    // Crear promesas de actualización con formato correcto
+                    const updatePromises = documents.map((doc, index) => {
+                        const newNumber = index + 1;
+                        const newDocumentNumber = `${prefix} ${department}-${newNumber.toString().padStart(3, '0')}-${year}`;
+                        
+                        console.log(`Actualizando documento ${doc.id}: ${doc.document_number} → ${newDocumentNumber}`);
+                        
+                        return supabaseClient
+                            .from('documents')
+                            .update({ document_number: newDocumentNumber })
+                            .eq('id', doc.id);
+                    });
+
+                    return Promise.all(updatePromises);
+                })
+                .then(() => {
+                    console.log('✅ Reorganización completada con formato correcto');
                 });
         }
 
