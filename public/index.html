@@ -1,8 +1,4 @@
-<td colspan="8" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-                                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
-                                            <div>Cargando documentos...</div>
-                                        </td>
-                                    </tr>
+</tr>
                                 </tbody>
                             </table>
                         </div>
@@ -513,7 +509,7 @@
             container.innerHTML = html;
         }
 
-        // 📝 GENERACIÓN DE DOCUMENTOS - VERSIÓN CORREGIDA PARA FORMATO ÚNICO
+        // 📝 GENERACIÓN DE DOCUMENTOS
         function generateDocument() {
             const type = document.getElementById('documentType').value;
             const department = document.getElementById('department').value;
@@ -532,7 +528,6 @@
 
             const currentYear = new Date().getFullYear();
 
-            // CONSULTA CORREGIDA: Buscar documentos con el formato correcto ÚNICAMENTE
             supabaseClient
                 .from('documents')
                 .select('document_number')
@@ -546,11 +541,9 @@
                         throw error;
                     }
 
-                    // LÓGICA CORREGIDA: Solo reconocer el formato correcto
                     const existingNumbers = [];
                     if (existingDocs && existingDocs.length > 0) {
                         existingDocs.forEach(doc => {
-                            // REGEX CORREGIDO: Solo acepta formato "Prefijo No. DEPT-XXX-YEAR"
                             const pattern = new RegExp(`No\\. ${department}-(\\d+)-${currentYear}`);
                             const match = doc.document_number.match(pattern);
                             
@@ -571,7 +564,6 @@
                         }
                     }
 
-                    // PREFIJOS MANTENIDOS IGUALES
                     let prefix;
                     switch (type) {
                         case 'oficio': prefix = 'Oficio No.'; break;
@@ -586,10 +578,8 @@
                         default: prefix = 'Documento No.';
                     }
 
-                    // FORMATO CORREGIDO: Siempre DEPT-XXX-YEAR (nunca XXX-DEPT-YEAR)
                     const documentNumber = `${prefix} ${department}-${nextNumber.toString().padStart(3, '0')}-${currentYear}`;
 
-                    // CREAR OBJETO DE DOCUMENTO
                     currentDocumentData = {
                         document_number: documentNumber,
                         document_type: type,
@@ -601,7 +591,6 @@
                         status: 'Activo'
                     };
 
-                    // VISTA PREVIA
                     const preview = generateDocumentPreview(currentDocumentData);
                     document.getElementById('documentPreview').innerHTML = preview;
                     document.getElementById('previewCard').classList.remove('hidden');
@@ -663,7 +652,6 @@
             }
 
             console.log('💾 Guardando documento...');
-            console.log('Datos a guardar:', currentDocumentData);
             updateStatus('🔄 Guardando documento...', 'info');
 
             const documentToSave = {
@@ -675,7 +663,36 @@
                 created_by_role: currentUser ? currentUser.role : 'Usuario',
                 recipient: currentDocumentData.recipient,
                 content: currentDocumentData.content,
-                status: currentDocumentData.status || 'Activo'<!DOCTYPE html>
+                status: currentDocumentData.status || 'Activo'
+            };
+
+            supabaseClient
+                .from('documents')
+                .insert(documentToSave)
+                .then(({ data, error }) => {
+                    if (error) {
+                        console.error('Error detallado:', error);
+                        throw error;
+                    }
+
+                    console.log('✅ Documento guardado exitosamente');
+                    showAlert(`✅ Documento ${documentToSave.document_number} guardado exitosamente`, 'success');
+                    updateStatus('🟢 Documento guardado correctamente', 'success');
+
+                    clearForm();
+                    clearPreview();
+                    loadSystemData();
+                })
+                .catch(error => {
+                    console.error('❌ Error guardando documento:', error);
+                    let errorMessage = 'Error desconocido';
+                    if (error.message) {
+                        errorMessage = error.message;
+                    } else if (typeof error === 'string') {
+                        errorMessage = error;
+                    }
+                    
+                    showAlert('Error guardando documento: ' + errorMessage,<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -1506,3 +1523,7 @@
                                 </thead>
                                 <tbody id="historyTable">
                                     <tr>
+                                        <td colspan="8" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
+                                            <div>Cargando documentos...</div>
+                                        </td>
