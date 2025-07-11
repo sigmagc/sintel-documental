@@ -1,4 +1,681 @@
-<!DOCTYPE html>
+<td colspan="8" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
+                                            <div>Cargando documentos...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PESTAÑA: GESTIÓN AVANZADA (Solo Admin) -->
+                <div id="countersTab" class="tab-content">
+                    <div class="card">
+                        <h2 class="card-title">
+                            📊 Gestión Avanzada del Sistema
+                        </h2>
+                        
+                        <div class="alert alert-warning">
+                            <strong>⚠️ Zona de Administración:</strong> Los cambios aquí afectan la numeración de documentos. Use con precaución.
+                        </div>
+                        
+                        <!-- REINICIAR CONTADORES -->
+                        <div style="margin-bottom: 30px;">
+                            <h3 style="margin-bottom: 15px; color: #FBB040;">🔄 Reiniciar Contadores</h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label">Departamento</label>
+                                    <select id="resetDepartment" class="form-select">
+                                        <option value="">Seleccionar (opcional)</option>
+                                        <option value="PRE">Presidencia (PRE)</option>
+                                        <option value="GGE">Gerencia General (GGE)</option>
+                                        <option value="PMO">Oficina de Proyectos (PMO)</option>
+                                        <option value="ADM">Contabilidad y Finanzas (ADM)</option>
+                                        <option value="RHU">Recursos Humanos (RHU)</option>
+                                        <option value="TIC">Tecnologías de Información (TIC)</option>
+                                        <option value="LOG">Logística (LOG)</option>
+                                        <option value="JUR">Jurídico (JUR)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Tipo de Documento</label>
+                                    <select id="resetType" class="form-select">
+                                        <option value="">Seleccionar (opcional)</option>
+                                        <option value="oficio">Oficio</option>
+                                        <option value="memorando">Memorando</option>
+                                        <option value="orden_compra">Orden de Compra</option>
+                                        <option value="proforma">Proforma</option>
+                                        <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
+                                        <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
+                                        <option value="acta_reunion">Acta de Reunión</option>
+                                        <option value="informe_tecnico">Informe Técnico</option>
+                                        <option value="informe_viaticos">Informe de Viáticos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button class="btn btn-danger" onclick="resetCounters()">
+                                    🔄 Reiniciar Contadores
+                                </button>
+                                <button class="btn btn-danger" onclick="deleteAllDocuments()" style="margin-left: 15px;">
+                                    🗑️ Eliminar Todos los Documentos
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- ESTADO ACTUAL -->
+                        <div>
+                            <h3 style="margin-bottom: 15px; color: #FBB040;">📈 Estado Actual de Contadores</h3>
+                            <div id="countersStatus">Cargando contadores...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- BARRA DE ESTADO -->
+    <div class="status-bar">
+        <div class="container">
+            <span id="statusMessage">🔄 Inicializando sistema...</span>
+        </div>
+    </div>
+
+    <script>
+        // 🔥 CONFIGURACIÓN GLOBAL
+        const SUPABASE_URL = 'https://xgfzyoxdokemeekqgxyp.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnZnp5b3hkb2tlbWVla3FneHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5Mzk5MDIsImV4cCI6MjA2NTUxNTkwMn0.ku5o86yfB6F5T9akZ2oVHV0ze5UEFZ18IRpoFNbDBU4';
+
+        // Variables globales
+        let currentUser = null;
+        let supabaseClient = null;
+        let allDocuments = [];
+        let currentDocumentData = null;
+
+        // Sistema de credenciales
+        const systemCredentials = {
+            'admin': { 
+                password: 'admin123', 
+                role: 'Administrador', 
+                name: 'Administrador del Sistema' 
+            },
+            'usuario': { 
+                password: 'usuario123', 
+                role: 'Usuario', 
+                name: 'Usuario Regular' 
+            }
+        };
+
+        console.log('✅ Sistema SINTEL inicializado');
+
+        // 🔐 FUNCIÓN DE LOGIN
+        function handleLogin() {
+            console.log('🔑 Procesando acceso al sistema...');
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!username || !password) {
+                showLoginError('Complete todos los campos');
+                return;
+            }
+
+            if (systemCredentials[username] && systemCredentials[username].password === password) {
+                currentUser = {
+                    username: username,
+                    ...systemCredentials[username]
+                };
+
+                console.log('✅ Acceso autorizado:', currentUser.role);
+                hideLoginError();
+                showMainApp();
+            } else {
+                console.log('❌ Acceso denegado');
+                showLoginError('Credenciales incorrectas');
+            }
+        }
+
+        function showLoginError(message) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideLoginError() {
+            document.getElementById('loginError').classList.add('hidden');
+        }
+
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            // Configurar interfaz según rol
+            if (currentUser && currentUser.role === 'Administrador') {
+                document.getElementById('countersTab').style.display = 'block';
+                console.log('👨‍💼 Funciones de administrador habilitadas');
+            }
+            
+            // Cargar datos iniciales
+            initializeSystem();
+        }
+
+        // 🔧 INICIALIZACIÓN DEL SISTEMA
+        function initializeSystem() {
+            console.log('🚀 Inicializando sistema completo...');
+            
+            try {
+                if (typeof supabase === 'undefined') {
+                    throw new Error('Supabase no disponible');
+                }
+                
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                updateConnectionStatus('🟢', '#2ecc71');
+                updateStatus('🟢 Sistema conectado correctamente', 'success');
+                
+                // Cargar datos iniciales
+                loadSystemData();
+                
+            } catch (error) {
+                console.error('❌ Error en inicialización:', error);
+                updateConnectionStatus('🔴', '#e74c3c');
+                updateStatus('🔴 Error: ' + error.message, 'error');
+            }
+        }
+
+        function updateConnectionStatus(icon, color) {
+            const statusElement = document.getElementById('connectionStatus');
+            if (statusElement) {
+                statusElement.textContent = icon;
+                statusElement.style.color = color;
+            }
+        }
+
+        // 📊 CARGA DE DATOS
+        function loadSystemData() {
+            console.log('📊 Cargando datos del sistema...');
+            
+            Promise.all([
+                loadStats(),
+                loadHistory(),
+                loadMainCounters()
+            ]).then(() => {
+                if (currentUser && currentUser.role === 'Administrador') {
+                    loadDetailedCounters();
+                }
+                updateStatus('🟢 Datos cargados correctamente', 'success');
+            }).catch(error => {
+                console.error('❌ Error cargando datos:', error);
+                updateStatus('🔴 Error cargando datos: ' + error.message, 'error');
+            });
+        }
+
+        function loadStats() {
+            return supabaseClient
+                .from('documents')
+                .select('*', { count: 'exact' })
+                .then(({ count: total, error }) => {
+                    if (error) throw error;
+                    
+                    // Documentos de hoy
+                    const today = new Date().toISOString().split('T')[0];
+                    return supabaseClient
+                        .from('documents')
+                        .select('*', { count: 'exact', head: true })
+                        .gte('created_date', today)
+                        .then(({ count: todayCount }) => {
+                            // Departamentos activos
+                            return supabaseClient
+                                .from('documents')
+                                .select('department')
+                                .then(({ data: departments }) => {
+                                    const activeDepts = departments ? new Set(departments.map(d => d.department)).size : 0;
+                                    
+                                    // Actualizar interfaz
+                                    document.getElementById('totalDocuments').textContent = total || 0;
+                                    document.getElementById('todayDocuments').textContent = todayCount || 0;
+                                    document.getElementById('activeDepartments').textContent = activeDepts;
+                                    
+                                    console.log('✅ Estadísticas actualizadas');
+                                });
+                        });
+                });
+        }
+
+        function loadHistory() {
+            return supabaseClient
+                .from('documents')
+                .select('*')
+                .order('created_date', { ascending: false })
+                .then(({ data: documents, error }) => {
+                    if (error) throw error;
+                    
+                    allDocuments = documents || [];
+                    updateHistoryTable(allDocuments);
+                    updateHistoryInfo(allDocuments.length);
+                    
+                    console.log('✅ Historial cargado:', allDocuments.length, 'documentos');
+                });
+        }
+
+        function updateHistoryTable(documents) {
+            const tbody = document.getElementById('historyTable');
+            
+            if (!documents || documents.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
+                            <div>No hay documentos para mostrar</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            documents.forEach(doc => {
+                const row = tbody.insertRow();
+                const date = new Date(doc.created_date).toLocaleString('es-ES');
+                
+                row.innerHTML = `
+                    <td><strong>${doc.document_number}</strong></td>
+                    <td><span style="background: rgba(251,176,64,0.2); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${getDocumentTypeName(doc.document_type)}</span></td>
+                    <td><span style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${doc.department}</span></td>
+                    <td>${doc.subject}</td>
+                    <td>${doc.created_by || 'No especificado'}</td>
+                    <td>${doc.recipient || 'No especificado'}</td>
+                    <td><small>${date}</small></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-small" onclick="viewDocument(${doc.id})" title="Ver detalles">
+                                👁️
+                            </button>
+                            ${currentUser && currentUser.role === 'Administrador' ? `
+                                <button class="btn btn-danger btn-small" onclick="deleteDocument(${doc.id}, '${doc.document_number}')" title="Eliminar">
+                                    🗑️
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
+            });
+        }
+
+        function updateHistoryInfo(totalCount) {
+            const info = document.getElementById('historyInfo');
+            info.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                    <div>
+                        <strong>📊 Total de documentos:</strong> ${totalCount}
+                    </div>
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.7);">
+                        Última actualización: ${new Date().toLocaleString('es-ES')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadMainCounters() {
+            return supabaseClient
+                .from('documents')
+                .select('document_type, department, created_date')
+                .then(({ data: documents, error }) => {
+                    if (error) throw error;
+                    
+                    const groups = {};
+                    const currentYear = new Date().getFullYear();
+                    
+                    documents.forEach(doc => {
+                        const year = new Date(doc.created_date).getFullYear();
+                        const key = `${doc.document_type}_${doc.department}_${year}`;
+                        
+                        if (!groups[key]) {
+                            groups[key] = {
+                                document_type: doc.document_type,
+                                department: doc.department,
+                                year: year,
+                                counter: 0
+                            };
+                        }
+                        groups[key].counter++;
+                    });
+
+                    const counters = Object.values(groups);
+                    updateMainCountersDisplay(counters, currentYear);
+                    
+                    console.log('✅ Contadores principales actualizados');
+                });
+        }
+
+        function updateMainCountersDisplay(counters, currentYear) {
+            const container = document.getElementById('mainCountersDisplay');
+            
+            if (!counters || counters.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
+                        <div>No hay documentos registrados</div>
+                        <div style="font-size: 0.9em; margin-top: 5px;">Cree su primer documento para ver los contadores</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Filtrar solo el año actual y agrupar por departamento
+            const currentYearCounters = counters.filter(c => c.year === currentYear);
+            const departmentGroups = {};
+            
+            currentYearCounters.forEach(counter => {
+                if (!departmentGroups[counter.department]) {
+                    departmentGroups[counter.department] = [];
+                }
+                departmentGroups[counter.department].push(counter);
+            });
+            
+            let html = `
+                <div style="margin-bottom: 20px; text-align: center;">
+                    <h3 style="color: #FBB040; margin: 0;">📅 Contadores del Año ${currentYear}</h3>
+                </div>
+            `;
+            
+            if (Object.keys(departmentGroups).length === 0) {
+                html += `
+                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
+                        <div>No hay documentos creados en ${currentYear}</div>
+                        <div style="font-size: 0.9em; margin-top: 5px;">Los contadores aparecerán aquí cuando cree documentos</div>
+                    </div>
+                `;
+            } else {
+                html += '<div class="counters-grid">';
+                
+                Object.keys(departmentGroups).sort().forEach(dept => {
+                    const deptCounters = departmentGroups[dept];
+                    const totalDept = deptCounters.reduce((sum, c) => sum + c.counter, 0);
+                    
+                    html += `
+                        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border-left: 4px solid #FBB040;">
+                            <h4 style="color: #FBB040; margin: 0 0 15px 0; display: flex; justify-content: space-between; align-items: center;">
+                                <span>🏢 ${getDepartmentName(dept)}</span>
+                                <span style="font-size: 24px; font-weight: bold;">${totalDept}</span>
+                            </h4>
+                            <div style="display: grid; gap: 8px;">
+                    `;
+                    
+                    deptCounters
+                        .sort((a, b) => getDocumentTypeName(a.document_type).localeCompare(getDocumentTypeName(b.document_type)))
+                        .forEach(counter => {
+                            html += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 5px;">
+                                    <span style="font-size: 13px;">${getDocumentTypeName(counter.document_type)}</span>
+                                    <span style="font-weight: bold; color: #FBB040;">${counter.counter}</span>
+                                </div>
+                            `;
+                        });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function loadDetailedCounters() {
+            return supabaseClient
+                .from('documents')
+                .select('document_type, department, created_date')
+                .then(({ data: documents, error }) => {
+                    if (error) throw error;
+                    
+                    const groups = {};
+                    documents.forEach(doc => {
+                        const year = new Date(doc.created_date).getFullYear();
+                        const key = `${doc.document_type}_${doc.department}_${year}`;
+                        
+                        if (!groups[key]) {
+                            groups[key] = {
+                                document_type: doc.document_type,
+                                department: doc.department,
+                                year: year,
+                                counter: 0
+                            };
+                        }
+                        groups[key].counter++;
+                    });
+
+                    const counters = Object.values(groups);
+                    updateDetailedCountersDisplay(counters);
+                    
+                    console.log('✅ Contadores detallados actualizados');
+                });
+        }
+
+        function updateDetailedCountersDisplay(counters) {
+            const container = document.getElementById('countersStatus');
+            
+            if (!counters || counters.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
+                        <div>No hay contadores para mostrar</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Agrupar por año
+            const countersByYear = {};
+            counters.forEach(counter => {
+                if (!countersByYear[counter.year]) {
+                    countersByYear[counter.year] = [];
+                }
+                countersByYear[counter.year].push(counter);
+            });
+            
+            let html = '';
+            Object.keys(countersByYear).sort((a, b) => b - a).forEach(year => {
+                html += `
+                    <div style="margin-bottom: 30px;">
+                        <h4 style="color: #FBB040; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">
+                            📅 Año ${year}
+                        </h4>
+                        <div class="counters-grid">
+                `;
+                
+                countersByYear[year]
+                    .sort((a, b) => a.department.localeCompare(b.department) || a.document_type.localeCompare(b.document_type))
+                    .forEach(counter => {
+                        html += `
+                            <div class="counter-item">
+                                <div class="counter-info">
+                                    <div class="counter-type">${getDocumentTypeName(counter.document_type)}</div>
+                                    <div class="counter-dept">${getDepartmentName(counter.department)}</div>
+                                </div>
+                                <div class="counter-number">${counter.counter}</div>
+                            </div>
+                        `;
+                    });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // 📝 GENERACIÓN DE DOCUMENTOS - VERSIÓN CORREGIDA PARA FORMATO ÚNICO
+        function generateDocument() {
+            const type = document.getElementById('documentType').value;
+            const department = document.getElementById('department').value;
+            const subject = document.getElementById('subject').value.trim();
+            const createdBy = document.getElementById('createdBy').value.trim();
+            const recipient = document.getElementById('recipient').value.trim();
+            const content = document.getElementById('content').value.trim();
+
+            if (!type || !department || !subject || !createdBy) {
+                showAlert('Complete los campos obligatorios (Tipo, Departamento, Asunto y Creado por)', 'error');
+                return;
+            }
+
+            console.log('📄 Generando documento...');
+            updateStatus('🔄 Generando documento...', 'info');
+
+            const currentYear = new Date().getFullYear();
+
+            // CONSULTA CORREGIDA: Buscar documentos con el formato correcto ÚNICAMENTE
+            supabaseClient
+                .from('documents')
+                .select('document_number')
+                .eq('document_type', type)
+                .eq('department', department)
+                .gte('created_date', `${currentYear}-01-01`)
+                .lt('created_date', `${currentYear + 1}-01-01`)
+                .then(({ data: existingDocs, error }) => {
+                    if (error) {
+                        console.error('Error en consulta:', error);
+                        throw error;
+                    }
+
+                    // LÓGICA CORREGIDA: Solo reconocer el formato correcto
+                    const existingNumbers = [];
+                    if (existingDocs && existingDocs.length > 0) {
+                        existingDocs.forEach(doc => {
+                            // REGEX CORREGIDO: Solo acepta formato "Prefijo No. DEPT-XXX-YEAR"
+                            const pattern = new RegExp(`No\\. ${department}-(\\d+)-${currentYear}`);
+                            const match = doc.document_number.match(pattern);
+                            
+                            if (match) {
+                                existingNumbers.push(parseInt(match[1]));
+                            }
+                        });
+                    }
+
+                    existingNumbers.sort((a, b) => a - b);
+
+                    let nextNumber = 1;
+                    for (let i = 0; i < existingNumbers.length; i++) {
+                        if (existingNumbers[i] === nextNumber) {
+                            nextNumber++;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // PREFIJOS MANTENIDOS IGUALES
+                    let prefix;
+                    switch (type) {
+                        case 'oficio': prefix = 'Oficio No.'; break;
+                        case 'memorando': prefix = 'Memorando No.'; break;
+                        case 'orden_compra': prefix = 'Orden de Compra No.'; break;
+                        case 'proforma': prefix = 'Proforma No.'; break;
+                        case 'acta_entrega_externa': prefix = 'Acta de Entrega-Recepción Externa No.'; break;
+                        case 'acta_entrega_interna': prefix = 'Acta de Entrega-Recepción Interna No.'; break;
+                        case 'acta_reunion': prefix = 'Acta de Reunión No.'; break;
+                        case 'informe_tecnico': prefix = 'Informe Técnico No.'; break;
+                        case 'informe_viaticos': prefix = 'Informe de Viáticos No.'; break;
+                        default: prefix = 'Documento No.';
+                    }
+
+                    // FORMATO CORREGIDO: Siempre DEPT-XXX-YEAR (nunca XXX-DEPT-YEAR)
+                    const documentNumber = `${prefix} ${department}-${nextNumber.toString().padStart(3, '0')}-${currentYear}`;
+
+                    // CREAR OBJETO DE DOCUMENTO
+                    currentDocumentData = {
+                        document_number: documentNumber,
+                        document_type: type,
+                        department: department,
+                        subject: subject,
+                        created_by: createdBy,
+                        recipient: recipient || null,
+                        content: content || null,
+                        status: 'Activo'
+                    };
+
+                    // VISTA PREVIA
+                    const preview = generateDocumentPreview(currentDocumentData);
+                    document.getElementById('documentPreview').innerHTML = preview;
+                    document.getElementById('previewCard').classList.remove('hidden');
+
+                    updateStatus('🟢 Documento generado - Revise la vista previa', 'success');
+                })
+                .catch(error => {
+                    console.error('❌ Error generando documento:', error);
+                    showAlert('Error generando documento: ' + error.message, 'error');
+                    updateStatus('🔴 Error generando documento', 'error');
+                });
+        }
+
+        function generateDocumentPreview(docData) {
+            const currentDate = new Date().toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            return `
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px; background: white; color: black; border-radius: 8px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h2 style="color: #092947; margin-bottom: 10px;">${docData.document_number}</h2>
+                        <p style="margin: 0; color: #666;"><strong>Fecha:</strong> ${currentDate}</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <p style="margin: 5px 0;"><strong>Tipo:</strong> ${getDocumentTypeName(docData.document_type)}</p>
+                        <p style="margin: 5px 0;"><strong>Departamento:</strong> ${getDepartmentName(docData.department)}</p>
+                        <p style="margin: 5px 0;"><strong>Creado por:</strong> ${docData.created_by}</p>
+                        ${docData.recipient ? `<p style="margin: 5px 0;"><strong>Destinatario:</strong> ${docData.recipient}</p>` : ''}
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <p style="margin: 5px 0;"><strong>Asunto:</strong> ${docData.subject}</p>
+                    </div>
+                    
+                    ${docData.content ? `
+                        <div style="margin-bottom: 20px;">
+                            <p style="margin: 5px 0;"><strong>Contenido:</strong></p>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px;">
+                                ${docData.content.replace(/\n/g, '<br>')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
+                        <p style="margin: 5px 0;"><strong>Estado:</strong> ${docData.status}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveDocument() {
+            if (!currentDocumentData) {
+                showAlert('No hay documento para guardar', 'error');
+                return;
+            }
+
+            console.log('💾 Guardando documento...');
+            console.log('Datos a guardar:', currentDocumentData);
+            updateStatus('🔄 Guardando documento...', 'info');
+
+            const documentToSave = {
+                document_number: currentDocumentData.document_number,
+                document_type: currentDocumentData.document_type,
+                department: currentDocumentData.department,
+                subject: currentDocumentData.subject,
+                created_by: currentDocumentData.created_by,
+                created_by_role: currentUser ? currentUser.role : 'Usuario',
+                recipient: currentDocumentData.recipient,
+                content: currentDocumentData.content,
+                status: currentDocumentData.status || 'Activo'<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -829,690 +1506,3 @@
                                 </thead>
                                 <tbody id="historyTable">
                                     <tr>
-                                        <td colspan="8" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-                                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
-                                            <div>Cargando documentos...</div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PESTAÑA: GESTIÓN AVANZADA (Solo Admin) -->
-                <div id="countersTab" class="tab-content">
-                    <div class="card">
-                        <h2 class="card-title">
-                            📊 Gestión Avanzada del Sistema
-                        </h2>
-                        
-                        <div class="alert alert-warning">
-                            <strong>⚠️ Zona de Administración:</strong> Los cambios aquí afectan la numeración de documentos. Use con precaución.
-                        </div>
-                        
-                        <!-- REINICIAR CONTADORES -->
-                        <div style="margin-bottom: 30px;">
-                            <h3 style="margin-bottom: 15px; color: #FBB040;">🔄 Reiniciar Contadores</h3>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">Departamento</label>
-                                    <select id="resetDepartment" class="form-select">
-                                        <option value="">Seleccionar (opcional)</option>
-                                        <option value="PRE">Presidencia (PRE)</option>
-                                        <option value="GGE">Gerencia General (GGE)</option>
-                                        <option value="PMO">Oficina de Proyectos (PMO)</option>
-                                        <option value="ADM">Contabilidad y Finanzas (ADM)</option>
-                                        <option value="RHU">Recursos Humanos (RHU)</option>
-                                        <option value="TIC">Tecnologías de Información (TIC)</option>
-                                        <option value="LOG">Logística (LOG)</option>
-                                        <option value="JUR">Jurídico (JUR)</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">Tipo de Documento</label>
-                                    <select id="resetType" class="form-select">
-                                        <option value="">Seleccionar (opcional)</option>
-                                        <option value="oficio">Oficio</option>
-                                        <option value="memorando">Memorando</option>
-                                        <option value="orden_compra">Orden de Compra</option>
-                                        <option value="proforma">Proforma</option>
-                                        <option value="acta_entrega_externa">Acta de Entrega-Recepción Externa</option>
-                                        <option value="acta_entrega_interna">Acta de Entrega-Recepción Interna</option>
-                                        <option value="acta_reunion">Acta de Reunión</option>
-                                        <option value="informe_tecnico">Informe Técnico</option>
-                                        <option value="informe_viaticos">Informe de Viáticos</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div style="text-align: center; margin-top: 20px;">
-                                <button class="btn btn-danger" onclick="resetCounters()">
-                                    🔄 Reiniciar Contadores
-                                </button>
-                                <button class="btn btn-danger" onclick="deleteAllDocuments()" style="margin-left: 15px;">
-                                    🗑️ Eliminar Todos los Documentos
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- ESTADO ACTUAL -->
-                        <div>
-                            <h3 style="margin-bottom: 15px; color: #FBB040;">📈 Estado Actual de Contadores</h3>
-                            <div id="countersStatus">Cargando contadores...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- BARRA DE ESTADO -->
-    <div class="status-bar">
-        <div class="container">
-            <span id="statusMessage">🔄 Inicializando sistema...</span>
-        </div>
-    </div>
-
-    <script>
-        // 🔥 CONFIGURACIÓN GLOBAL
-        const SUPABASE_URL = 'https://xgfzyoxdokemeekqgxyp.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnZnp5b3hkb2tlbWVla3FneHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5Mzk5MDIsImV4cCI6MjA2NTUxNTkwMn0.ku5o86yfB6F5T9akZ2oVHV0ze5UEFZ18IRpoFNbDBU4';
-
-        // Variables globales
-        let currentUser = null;
-        let supabaseClient = null;
-        let allDocuments = [];
-        let currentDocumentData = null;
-
-        // Sistema de credenciales
-        const systemCredentials = {
-            'admin': { 
-                password: 'admin123', 
-                role: 'Administrador', 
-                name: 'Administrador del Sistema' 
-            },
-            'usuario': { 
-                password: 'usuario123', 
-                role: 'Usuario', 
-                name: 'Usuario Regular' 
-            }
-        };
-
-        console.log('✅ Sistema SINTEL inicializado');
-
-        // 🔐 FUNCIÓN DE LOGIN
-        function handleLogin() {
-            console.log('🔑 Procesando acceso al sistema...');
-            
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-
-            if (!username || !password) {
-                showLoginError('Complete todos los campos');
-                return;
-            }
-
-            if (systemCredentials[username] && systemCredentials[username].password === password) {
-                currentUser = {
-                    username: username,
-                    ...systemCredentials[username]
-                };
-
-                console.log('✅ Acceso autorizado:', currentUser.role);
-                hideLoginError();
-                showMainApp();
-            } else {
-                console.log('❌ Acceso denegado');
-                showLoginError('Credenciales incorrectas');
-            }
-        }
-
-        function showLoginError(message) {
-            const errorDiv = document.getElementById('loginError');
-            errorDiv.textContent = message;
-            errorDiv.classList.remove('hidden');
-        }
-
-        function hideLoginError() {
-            document.getElementById('loginError').classList.add('hidden');
-        }
-
-        function showMainApp() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-            
-            // Configurar interfaz según rol
-            if (currentUser && currentUser.role === 'Administrador') {
-                document.getElementById('countersTab').style.display = 'block';
-                console.log('👨‍💼 Funciones de administrador habilitadas');
-            }
-            
-            // Cargar datos iniciales
-            initializeSystem();
-        }
-
-        // 🔧 INICIALIZACIÓN DEL SISTEMA
-        function initializeSystem() {
-            console.log('🚀 Inicializando sistema completo...');
-            
-            try {
-                if (typeof supabase === 'undefined') {
-                    throw new Error('Supabase no disponible');
-                }
-                
-                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                updateConnectionStatus('🟢', '#2ecc71');
-                updateStatus('🟢 Sistema conectado correctamente', 'success');
-                
-                // Cargar datos iniciales
-                loadSystemData();
-                
-            } catch (error) {
-                console.error('❌ Error en inicialización:', error);
-                updateConnectionStatus('🔴', '#e74c3c');
-                updateStatus('🔴 Error: ' + error.message, 'error');
-            }
-        }
-
-        function updateConnectionStatus(icon, color) {
-            const statusElement = document.getElementById('connectionStatus');
-            if (statusElement) {
-                statusElement.textContent = icon;
-                statusElement.style.color = color;
-            }
-        }
-
-        // 📊 CARGA DE DATOS
-        function loadSystemData() {
-            console.log('📊 Cargando datos del sistema...');
-            
-            Promise.all([
-                loadStats(),
-                loadHistory(),
-                loadMainCounters()
-            ]).then(() => {
-                if (currentUser && currentUser.role === 'Administrador') {
-                    loadDetailedCounters();
-                }
-                updateStatus('🟢 Datos cargados correctamente', 'success');
-            }).catch(error => {
-                console.error('❌ Error cargando datos:', error);
-                updateStatus('🔴 Error cargando datos: ' + error.message, 'error');
-            });
-        }
-
-        function loadStats() {
-            return supabaseClient
-                .from('documents')
-                .select('*', { count: 'exact' })
-                .then(({ count: total, error }) => {
-                    if (error) throw error;
-                    
-                    // Documentos de hoy
-                    const today = new Date().toISOString().split('T')[0];
-                    return supabaseClient
-                        .from('documents')
-                        .select('*', { count: 'exact', head: true })
-                        .gte('created_date', today)
-                        .then(({ count: todayCount }) => {
-                            // Departamentos activos
-                            return supabaseClient
-                                .from('documents')
-                                .select('department')
-                                .then(({ data: departments }) => {
-                                    const activeDepts = departments ? new Set(departments.map(d => d.department)).size : 0;
-                                    
-                                    // Actualizar interfaz
-                                    document.getElementById('totalDocuments').textContent = total || 0;
-                                    document.getElementById('todayDocuments').textContent = todayCount || 0;
-                                    document.getElementById('activeDepartments').textContent = activeDepts;
-                                    
-                                    console.log('✅ Estadísticas actualizadas');
-                                });
-                        });
-                });
-        }
-
-        function loadHistory() {
-            return supabaseClient
-                .from('documents')
-                .select('*')
-                .order('created_date', { ascending: false })
-                .then(({ data: documents, error }) => {
-                    if (error) throw error;
-                    
-                    allDocuments = documents || [];
-                    updateHistoryTable(allDocuments);
-                    updateHistoryInfo(allDocuments.length);
-                    
-                    console.log('✅ Historial cargado:', allDocuments.length, 'documentos');
-                });
-        }
-
-        function updateHistoryTable(documents) {
-            const tbody = document.getElementById('historyTable');
-            
-            if (!documents || documents.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="8" style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-                            <div style="font-size: 1.2em; margin-bottom: 10px;">📄</div>
-                            <div>No hay documentos para mostrar</div>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            tbody.innerHTML = '';
-            documents.forEach(doc => {
-                const row = tbody.insertRow();
-                const date = new Date(doc.created_date).toLocaleString('es-ES');
-                
-                row.innerHTML = `
-                    <td><strong>${doc.document_number}</strong></td>
-                    <td><span style="background: rgba(251,176,64,0.2); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${getDocumentTypeName(doc.document_type)}</span></td>
-                    <td><span style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 12px;">${doc.department}</span></td>
-                    <td>${doc.subject}</td>
-                    <td>${doc.created_by || 'No especificado'}</td>
-                    <td>${doc.recipient || 'No especificado'}</td>
-                    <td><small>${date}</small></td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn btn-small" onclick="viewDocument(${doc.id})" title="Ver detalles">
-                                👁️
-                            </button>
-                            ${currentUser && currentUser.role === 'Administrador' ? `
-                                <button class="btn btn-danger btn-small" onclick="deleteDocument(${doc.id}, '${doc.document_number}')" title="Eliminar">
-                                    🗑️
-                                </button>
-                            ` : ''}
-                        </div>
-                    </td>
-                `;
-            });
-        }
-
-        function updateHistoryInfo(totalCount) {
-            const info = document.getElementById('historyInfo');
-            info.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
-                    <div>
-                        <strong>📊 Total de documentos:</strong> ${totalCount}
-                    </div>
-                    <div style="font-size: 12px; color: rgba(255,255,255,0.7);">
-                        Última actualización: ${new Date().toLocaleString('es-ES')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function loadMainCounters() {
-            return supabaseClient
-                .from('documents')
-                .select('document_type, department, created_date')
-                .then(({ data: documents, error }) => {
-                    if (error) throw error;
-                    
-                    const groups = {};
-                    const currentYear = new Date().getFullYear();
-                    
-                    documents.forEach(doc => {
-                        const year = new Date(doc.created_date).getFullYear();
-                        const key = `${doc.document_type}_${doc.department}_${year}`;
-                        
-                        if (!groups[key]) {
-                            groups[key] = {
-                                document_type: doc.document_type,
-                                department: doc.department,
-                                year: year,
-                                counter: 0
-                            };
-                        }
-                        groups[key].counter++;
-                    });
-
-                    const counters = Object.values(groups);
-                    updateMainCountersDisplay(counters, currentYear);
-                    
-                    console.log('✅ Contadores principales actualizados');
-                });
-        }
-
-        function updateMainCountersDisplay(counters, currentYear) {
-            const container = document.getElementById('mainCountersDisplay');
-            
-            if (!counters || counters.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-                        <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
-                        <div>No hay documentos registrados</div>
-                        <div style="font-size: 0.9em; margin-top: 5px;">Cree su primer documento para ver los contadores</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Filtrar solo el año actual y agrupar por departamento
-            const currentYearCounters = counters.filter(c => c.year === currentYear);
-            const departmentGroups = {};
-            
-            currentYearCounters.forEach(counter => {
-                if (!departmentGroups[counter.department]) {
-                    departmentGroups[counter.department] = [];
-                }
-                departmentGroups[counter.department].push(counter);
-            });
-            
-            let html = `
-                <div style="margin-bottom: 20px; text-align: center;">
-                    <h3 style="color: #FBB040; margin: 0;">📅 Contadores del Año ${currentYear}</h3>
-                </div>
-            `;
-            
-            if (Object.keys(departmentGroups).length === 0) {
-                html += `
-                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-                        <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
-                        <div>No hay documentos creados en ${currentYear}</div>
-                        <div style="font-size: 0.9em; margin-top: 5px;">Los contadores aparecerán aquí cuando cree documentos</div>
-                    </div>
-                `;
-            } else {
-                html += '<div class="counters-grid">';
-                
-                Object.keys(departmentGroups).sort().forEach(dept => {
-                    const deptCounters = departmentGroups[dept];
-                    const totalDept = deptCounters.reduce((sum, c) => sum + c.counter, 0);
-                    
-                    html += `
-                        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; border-left: 4px solid #FBB040;">
-                            <h4 style="color: #FBB040; margin: 0 0 15px 0; display: flex; justify-content: space-between; align-items: center;">
-                                <span>🏢 ${getDepartmentName(dept)}</span>
-                                <span style="font-size: 24px; font-weight: bold;">${totalDept}</span>
-                            </h4>
-                            <div style="display: grid; gap: 8px;">
-                    `;
-                    
-                    deptCounters
-                        .sort((a, b) => getDocumentTypeName(a.document_type).localeCompare(getDocumentTypeName(b.document_type)))
-                        .forEach(counter => {
-                            html += `
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 5px;">
-                                    <span style="font-size: 13px;">${getDocumentTypeName(counter.document_type)}</span>
-                                    <span style="font-weight: bold; color: #FBB040;">${counter.counter}</span>
-                                </div>
-                            `;
-                        });
-                    
-                    html += `
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                html += '</div>';
-            }
-            
-            container.innerHTML = html;
-        }
-
-        function loadDetailedCounters() {
-            return supabaseClient
-                .from('documents')
-                .select('document_type, department, created_date')
-                .then(({ data: documents, error }) => {
-                    if (error) throw error;
-                    
-                    const groups = {};
-                    documents.forEach(doc => {
-                        const year = new Date(doc.created_date).getFullYear();
-                        const key = `${doc.document_type}_${doc.department}_${year}`;
-                        
-                        if (!groups[key]) {
-                            groups[key] = {
-                                document_type: doc.document_type,
-                                department: doc.department,
-                                year: year,
-                                counter: 0
-                            };
-                        }
-                        groups[key].counter++;
-                    });
-
-                    const counters = Object.values(groups);
-                    updateDetailedCountersDisplay(counters);
-                    
-                    console.log('✅ Contadores detallados actualizados');
-                });
-        }
-
-        function updateDetailedCountersDisplay(counters) {
-            const container = document.getElementById('countersStatus');
-            
-            if (!counters || counters.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-                        <div style="font-size: 1.2em; margin-bottom: 10px;">📊</div>
-                        <div>No hay contadores para mostrar</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Agrupar por año
-            const countersByYear = {};
-            counters.forEach(counter => {
-                if (!countersByYear[counter.year]) {
-                    countersByYear[counter.year] = [];
-                }
-                countersByYear[counter.year].push(counter);
-            });
-            
-            let html = '';
-            Object.keys(countersByYear).sort((a, b) => b - a).forEach(year => {
-                html += `
-                    <div style="margin-bottom: 30px;">
-                        <h4 style="color: #FBB040; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">
-                            📅 Año ${year}
-                        </h4>
-                        <div class="counters-grid">
-                `;
-                
-                countersByYear[year]
-                    .sort((a, b) => a.department.localeCompare(b.department) || a.document_type.localeCompare(b.document_type))
-                    .forEach(counter => {
-                        html += `
-                            <div class="counter-item">
-                                <div class="counter-info">
-                                    <div class="counter-type">${getDocumentTypeName(counter.document_type)}</div>
-                                    <div class="counter-dept">${getDepartmentName(counter.department)}</div>
-                                </div>
-                                <div class="counter-number">${counter.counter}</div>
-                            </div>
-                        `;
-                    });
-                
-                html += `
-                        </div>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        // 📝 GENERACIÓN DE DOCUMENTOS - VERSIÓN CORREGIDA PARA FORMATO ÚNICO
-        function generateDocument() {
-            const type = document.getElementById('documentType').value;
-            const department = document.getElementById('department').value;
-            const subject = document.getElementById('subject').value.trim();
-            const createdBy = document.getElementById('createdBy').value.trim();
-            const recipient = document.getElementById('recipient').value.trim();
-            const content = document.getElementById('content').value.trim();
-
-            if (!type || !department || !subject || !createdBy) {
-                showAlert('Complete los campos obligatorios (Tipo, Departamento, Asunto y Creado por)', 'error');
-                return;
-            }
-
-            console.log('📄 Generando documento...');
-            updateStatus('🔄 Generando documento...', 'info');
-
-            const currentYear = new Date().getFullYear();
-
-            // CONSULTA CORREGIDA: Buscar documentos con el formato correcto ÚNICAMENTE
-            supabaseClient
-                .from('documents')
-                .select('document_number')
-                .eq('document_type', type)
-                .eq('department', department)
-                .gte('created_date', `${currentYear}-01-01`)
-                .lt('created_date', `${currentYear + 1}-01-01`)
-                .then(({ data: existingDocs, error }) => {
-                    if (error) {
-                        console.error('Error en consulta:', error);
-                        throw error;
-                    }
-
-                    // LÓGICA CORREGIDA: Solo reconocer el formato correcto
-                    const existingNumbers = [];
-                    if (existingDocs && existingDocs.length > 0) {
-                        existingDocs.forEach(doc => {
-                            // REGEX CORREGIDO: Solo acepta formato "Prefijo No. DEPT-XXX-YEAR"
-                            const pattern = new RegExp(`No\\. ${department}-(\\d+)-${currentYear}`);
-                            const match = doc.document_number.match(pattern);
-                            
-                            if (match) {
-                                existingNumbers.push(parseInt(match[1]));
-                            }
-                        });
-                    }
-
-                    existingNumbers.sort((a, b) => a - b);
-
-                    let nextNumber = 1;
-                    for (let i = 0; i < existingNumbers.length; i++) {
-                        if (existingNumbers[i] === nextNumber) {
-                            nextNumber++;
-                        } else {
-                            break;
-                        }
-                    }
-
-                    // PREFIJOS MANTENIDOS IGUALES
-                    let prefix;
-                    switch (type) {
-                        case 'oficio': prefix = 'Oficio No.'; break;
-                        case 'memorando': prefix = 'Memorando No.'; break;
-                        case 'orden_compra': prefix = 'Orden de Compra No.'; break;
-                        case 'proforma': prefix = 'Proforma No.'; break;
-                        case 'acta_entrega_externa': prefix = 'Acta de Entrega-Recepción Externa No.'; break;
-                        case 'acta_entrega_interna': prefix = 'Acta de Entrega-Recepción Interna No.'; break;
-                        case 'acta_reunion': prefix = 'Acta de Reunión No.'; break;
-                        case 'informe_tecnico': prefix = 'Informe Técnico No.'; break;
-                        case 'informe_viaticos': prefix = 'Informe de Viáticos No.'; break;
-                        default: prefix = 'Documento No.';
-                    }
-
-                    // FORMATO CORREGIDO: Siempre DEPT-XXX-YEAR (nunca XXX-DEPT-YEAR)
-                    const documentNumber = `${prefix} ${department}-${nextNumber.toString().padStart(3, '0')}-${currentYear}`;
-
-                    // CREAR OBJETO DE DOCUMENTO
-                    currentDocumentData = {
-                        document_number: documentNumber,
-                        document_type: type,
-                        department: department,
-                        subject: subject,
-                        created_by: createdBy,
-                        recipient: recipient || null,
-                        content: content || null,
-                        status: 'Activo'
-                    };
-
-                    // VISTA PREVIA
-                    const preview = generateDocumentPreview(currentDocumentData);
-                    document.getElementById('documentPreview').innerHTML = preview;
-                    document.getElementById('previewCard').classList.remove('hidden');
-
-                    updateStatus('🟢 Documento generado - Revise la vista previa', 'success');
-                })
-                .catch(error => {
-                    console.error('❌ Error generando documento:', error);
-                    showAlert('Error generando documento: ' + error.message, 'error');
-                    updateStatus('🔴 Error generando documento', 'error');
-                });
-        }
-
-        function generateDocumentPreview(docData) {
-            const currentDate = new Date().toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-
-            return `
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px; background: white; color: black; border-radius: 8px;">
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <h2 style="color: #092947; margin-bottom: 10px;">${docData.document_number}</h2>
-                        <p style="margin: 0; color: #666;"><strong>Fecha:</strong> ${currentDate}</p>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <p style="margin: 5px 0;"><strong>Tipo:</strong> ${getDocumentTypeName(docData.document_type)}</p>
-                        <p style="margin: 5px 0;"><strong>Departamento:</strong> ${getDepartmentName(docData.department)}</p>
-                        <p style="margin: 5px 0;"><strong>Creado por:</strong> ${docData.created_by}</p>
-                        ${docData.recipient ? `<p style="margin: 5px 0;"><strong>Destinatario:</strong> ${docData.recipient}</p>` : ''}
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <p style="margin: 5px 0;"><strong>Asunto:</strong> ${docData.subject}</p>
-                    </div>
-                    
-                    ${docData.content ? `
-                        <div style="margin-bottom: 20px;">
-                            <p style="margin: 5px 0;"><strong>Contenido:</strong></p>
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px;">
-                                ${docData.content.replace(/\n/g, '<br>')}
-                            </div>
-                        </div>
-                    ` : ''}
-                    
-                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
-                        <p style="margin: 5px 0;"><strong>Estado:</strong> ${docData.status}</p>
-                    </div>
-                </div>
-            `;
-        }
-
-        function saveDocument() {
-            if (!currentDocumentData) {
-                showAlert('No hay documento para guardar', 'error');
-                return;
-            }
-
-            console.log('💾 Guardando documento...');
-            console.log('Datos a guardar:', currentDocumentData);
-            updateStatus('🔄 Guardando documento...', 'info');
-
-            const documentToSave = {
-                document_number: currentDocumentData.document_number,
-                document_type: currentDocumentData.document_type,
-                department: currentDocumentData.department,
-                subject: currentDocumentData.subject,
-                created_by: currentDocumentData.created_by,
-                created_by_role: currentUser ? currentUser.role : 'Usuario',
-                recipient: currentDocumentData.recipient,
-                content: currentDocumentData.content,
-                status: currentDocumentData.status || 'Activo'
-            };
-
-            console.log('Documento con todos los campos:', documentToSave);
-
-            supabaseClient
-                .from('documents')
-                .insert(documentToSave)
-                .then(({ data, error }) => {
-                    console.log('Respuesta de Supabase:', { data, error });
