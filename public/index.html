@@ -697,6 +697,7 @@
                                     <label class="form-label">Departamento</label>
                                     <select id="department" class="form-select" required>
                                         <option value="">Seleccione el departamento</option>
+                                        <option value="PRE">Presidencia (PRE)</option>
                                         <option value="GGE">Gerencia General (GGE)</option>
                                         <option value="PMO">Oficina de Proyectos (PMO)</option>
                                         <option value="ADM">Contabilidad y Finanzas (ADM)</option>
@@ -785,6 +786,7 @@
                                 <label class="filter-label">Departamento</label>
                                 <select id="filterDepartment" class="form-select" onchange="applyFilters()">
                                     <option value="">Todos los departamentos</option>
+                                    <option value="PRE">Presidencia (PRE)</option>
                                     <option value="GGE">Gerencia General (GGE)</option>
                                     <option value="PMO">Oficina de Proyectos (PMO)</option>
                                     <option value="ADM">Contabilidad y Finanzas (ADM)</option>
@@ -857,6 +859,7 @@
                                     <label class="form-label">Departamento</label>
                                     <select id="resetDepartment" class="form-select">
                                         <option value="">Seleccionar (opcional)</option>
+                                        <option value="PRE">Presidencia (PRE)</option>
                                         <option value="GGE">Gerencia General (GGE)</option>
                                         <option value="PMO">Oficina de Proyectos (PMO)</option>
                                         <option value="ADM">Contabilidad y Finanzas (ADM)</option>
@@ -1941,6 +1944,7 @@
 
         function getDepartmentName(dept) {
             const departments = {
+                'PRE': 'Presidencia',
                 'GGE': 'Gerencia General',
                 'PMO': 'Oficina de Proyectos',
                 'ADM': 'Contabilidad y Finanzas',
